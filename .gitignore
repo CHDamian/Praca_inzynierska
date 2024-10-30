@@ -1,0 +1,53 @@
+# Systemowe pliki i foldery
+*.DS_Store
+*.swp
+*.swo
+Thumbs.db
+
+# Wirtualne środowisko
+venv/
+env/
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.sqlite3
+
+# Pliki konfiguracyjne IDE i edytorów
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Django
+db.sqlite3
+/media/
+staticfiles/
+static/
+*.log
+local_settings.py
+
+# Kompilacje i pliki tymczasowe
+*.pot
+*.mo
+*.out
+
+# Celery
+celerybeat-schedule
+
+# Pliki środowiskowe
+.env
+*.env
+
+# Migracje
+**/migrations/*
+!**/migrations/__init__.py
+
+# Pliki cache, raporty i inne
+*.coverage
+.coverage.*
+.cache
+.tox/
+.pytest_cache/
+htmlcov/
+reports/
