@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Centrum Zarządzania Kursami</h2>
+
+    <!-- Przycisk "Stwórz Kontest" -->
+    <div class="mb-3">
+        <a href="#" class="btn btn-primary">Stwórz Kurs</a>
+    </div>
+
+    <!-- Formularz wyszukiwania -->
+    <form method="get" class="form-inline mb-3">
+        <input type="text" name="search" placeholder="Szukaj..." value="{{ request.GET.search }}" class="form-control mr-2">
+        <button type="submit" class="btn btn-secondary">Szukaj</button>
+    </form>
+
+    <!-- Nagłówki kolumn z opcjami sortowania -->
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>
+                    <a href="?sort=name&reverse={% if request.GET.reverse == 'true' %}false{% else %}true{% endif %}" class="text-decoration-none">Nazwa</a>
+                </th>
+                <th>
+                    <a href="?sort=teacher&reverse={% if request.GET.reverse == 'true' %}false{% else %}true{% endif %}" class="text-decoration-none">Prowadzący</a>
+                </th>
+                <th>
+                    <a href="?sort=start_date&reverse={% if request.GET.reverse == 'true' %}false{% else %}true{% endif %}" class="text-decoration-none">Data rozpoczęcia</a>
+                </th>
+                <th>
+                    <a href="?sort=end_date&reverse={% if request.GET.reverse == 'true' %}false{% else %}true{% endif %}" class="text-decoration-none">Data zakończenia</a>
+                </th>
+                <th>Akcje</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for contest in contests %}
+                <tr>
+                    <td>{{ contest.name }}</td>
+                    <td>{{ contest.teacher.first_name }} {{ contest.teacher.last_name }}</td>
+                    <td>{{ contest.start_date|default:"N/A" }}</td>
+                    <td>{{ contest.end_date|default:"N/A" }}</td>
+                    <td>
+                        <a href="#" class="btn btn-sm btn-secondary">Edytuj</a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center">Brak dostępnych kursów</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Paginacja -->
+    <nav aria-label="Pagination">
+        <ul class="pagination justify-content-center">
+            {% if contests.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page={{ contests.previous_page_number }}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+            {% endif %}
+            {% for num in contests.paginator.page_range %}
+                <li class="page-item {% if contests.number == num %}active{% endif %}">
+                    <a class="page-link" href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page={{ num }}">{{ num }}</a>
+                </li>
+            {% endfor %}
+            {% if contests.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page={{ contests.next_page_number }}" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+{% endblock %}

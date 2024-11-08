@@ -1,0 +1,30 @@
+<!-- login.html -->
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+{% block content %}
+<div class="container mt-5">
+    <h2 class="text-center">Logowanie</h2>
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+
+            <form method="post" novalidate>
+                {% csrf_token %}
+                <div class="form-group">
+                    <label for="id_username_or_email">Nazwa użytkownika lub Email</label>
+                    {{ form.username_or_email|add_class:"form-control" }}
+                </div>
+                <div class="form-group">
+                    <label for="id_password">Hasło</label>
+                    {{ form.password|add_class:"form-control" }}
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Zaloguj</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

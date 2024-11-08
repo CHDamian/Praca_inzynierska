@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Sprawdzarka</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        /* Stylizacja rozwijanego menu z boku */
+        .nav-item.dropdown .dropdown-menu {
+            position: absolute;
+            top: 0;
+            left: 100%;  /* Ustawienie pozycji obok przycisku */
+            margin-top: 0;  /* Wyrównanie do góry */
+            display: none;  /* Domyślnie ukryte */
+        }
+
+        /* Wyświetlanie menu przy najechaniu */
+        .nav-item.dropdown:hover .dropdown-menu {
+            display: block;
+        }
+
+        /* Wyrównanie menu względem przycisków */
+        .sidebar .nav-item {
+            position: relative;  /* Ustawienie względne dla dropdown */
+        }
+    </style>
+</head>
+<body>
+    <!-- Pasek na górze -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <a class="navbar-brand" href="/">Sprawdzarka</a>
+        <div class="ml-auto">
+            <a class="btn btn-outline-light mr-2" href="/">Home</a>
+            <a class="btn btn-outline-light mr-2" href="/register">Rejestracja</a>
+            <a class="btn btn-outline-light" href="/logout">Wyloguj</a>
+        </div>
+    </nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Pasek boczny -->
+            <nav class="col-md-2 d-none d-md-block bg-light sidebar">
+                <div class="sidebar-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <!-- Dropdown dla Admin -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button">
+                                Admin
+                            </a>
+                            <div class="dropdown-menu" aria-labelledby="adminDropdown">
+                                <a class="dropdown-item" href="#">Użytkownicy</a>
+                            </div>
+                        </li>
+
+                        <!-- Dropdown dla Nauczyciel -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="teacherDropdown" role="button">
+                                Nauczyciel
+                            </a>
+                            <div class="dropdown-menu" aria-labelledby="teacherDropdown">
+                                <a class="dropdown-item" href="/contest_manager">Kursy</a>
+                                <a class="dropdown-item" href="#">Wykłady</a>
+                                <a class="dropdown-item" href="#">Zadania</a>
+                                <a class="dropdown-item" href="#">Pytania</a>
+                            </div>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">Kursy</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">Wykłady</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">Zadania</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">Wyślij</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">Pytania</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">Forum</a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Główna przestrzeń na widoki -->
+            <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-4">
+                <div class="pt-3 pb-2 mb-3 border-bottom">
+                    {% block content %}
+                    <!-- Miejsce na treść widoku -->
+                    {% endblock %}
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Skrypty Bootstrapa -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>

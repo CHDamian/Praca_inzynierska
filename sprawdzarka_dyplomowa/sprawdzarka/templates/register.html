@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Rejestracja</h2>
+    <form method="post">
+        {% csrf_token %}
+        {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+        
+        <div class="form-group">
+            <label for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
+            {{ form.username }}
+        </div>
+        
+        <div class="form-group">
+            <label for="{{ form.password.id_for_label }}">{{ form.password.label }}</label>
+            {{ form.password }}
+            <small class="form-text text-muted">{{ form.password.help_text }}</small>
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.password_confirm.id_for_label }}">{{ form.password_confirm.label }}</label>
+            {{ form.password_confirm }}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+            {{ form.email }}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.first_name.id_for_label }}">{{ form.first_name.label }}</label>
+            {{ form.first_name }}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.last_name.id_for_label }}">{{ form.last_name.label }}</label>
+            {{ form.last_name }}
+        </div>
+
+        <button type="submit" class="btn btn-primary mt-3">Zarejestruj</button>
+    </form>
+</div>
+{% endblock %}
