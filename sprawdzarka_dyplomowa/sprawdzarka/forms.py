@@ -67,3 +67,4 @@ class RegisterForm(forms.Form):
         if password != password_confirm:
             raise forms.ValidationError("Hasła się nie zgadzają.")
         return cleaned_data
+

@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Centrum Zarządzania Wykładami</h2>
+
+    <!-- Dodaj Wykład button -->
+    <div class="mb-3">
+        <a href="#" class="btn btn-primary">Dodaj Wykład</a>
+    </div>
+
+    <!-- Search form -->
+    <form method="get" class="form-inline mb-3">
+        <input type="text" name="search" placeholder="Szukaj..." value="{{ search_query }}" class="form-control mr-2">
+        <button type="submit" class="btn btn-secondary">Szukaj</button>
+    </form>
+
+    <!-- Lecture table with sorting options -->
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th><a href="?sort=name&reverse={% if sort_reverse == 'true' %}false{% else %}true{% endif %}" class="text-decoration-none">Nazwa</a></th>
+                <th><a href="?sort=teacher&reverse={% if sort_reverse == 'true' %}false{% else %}true{% endif %}" class="text-decoration-none">Prowadzący</a></th>
+                <th>Publiczny?</th>
+                <th>Akcje</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for lecture in lectures %}
+                <tr>
+                    <td><a href="{{ lecture.content_path }}">{{ lecture.name }}</a></td>
+                    <td>{{ lecture.teacher.first_name }} {{ lecture.teacher.last_name }}</td>
+                    <td>
+                        {% if lecture.is_public %}
+                            <span class="badge badge-success">TAK</span>
+                        {% else %}
+                            <span class="badge badge-danger">NIE</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="#" class="btn btn-sm btn-secondary {% if lecture.teacher != request.user %}disabled{% endif %}">Edytuj</a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center">Brak dostępnych wykładów</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Pagination -->
+    <nav aria-label="Pagination">
+        <ul class="pagination justify-content-center">
+            {% if lectures.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if sort_option %}sort={{ sort_option }}&reverse={{ sort_reverse }}&{% endif %}page={{ lectures.previous_page_number }}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+            {% endif %}
+            {% for num in lectures.paginator.page_range %}
+                <li class="page-item {% if lectures.number == num %}active{% endif %}">
+                    <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if sort_option %}sort={{ sort_option }}&reverse={{ sort_reverse }}&{% endif %}page={{ num }}">{{ num }}</a>
+                </li>
+            {% endfor %}
+            {% if lectures.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if search_query %}search={{ search_query }}&{% endif %}{% if sort_option %}sort={{ sort_option }}&reverse={{ sort_reverse }}&{% endif %}page={{ lectures.next_page_number }}" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+{% endblock %}

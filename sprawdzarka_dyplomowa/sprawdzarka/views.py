@@ -6,7 +6,7 @@ from django.utils.decorators import method_decorator
 from .forms import LoginForm, RegisterForm
 from .decorators import not_logged_in_required, logged_in_required, user_not_teacher, user_not_admin
 from django.contrib.auth.decorators import login_required
-from .models import User, Contest
+from .models import User, Contest, Lecture, Task
 
 @not_logged_in_required
 def login_view(request):
@@ -89,6 +89,77 @@ class contest_manager_view(ListView):
         if sort_option in ['name', 'teacher', 'start_date', 'end_date']:
             if sort_option == 'teacher':
                 queryset = queryset.order_by(f"{'-' if sort_reverse else ''}teacher__first_name")
+            else:
+                queryset = queryset.order_by(f"{'-' if sort_reverse else ''}{sort_option}")
+
+        return queryset
+    
+@method_decorator(login_required, name='dispatch')
+class lecture_manager_view(ListView):
+    model = Lecture
+    template_name = 'lecture_manager.html'
+    context_object_name = 'lectures'
+    paginate_by = 10
+
+    def get_queryset(self):
+        user = self.request.user
+        search_query = self.request.GET.get('search', '')
+        sort_option = self.request.GET.get('sort', 'name')
+        sort_reverse = self.request.GET.get('reverse', 'false') == 'true'
+        
+        # Retrieve lectures based on user's role
+        if user.role == 'admin':
+            queryset = Lecture.objects.all()
+        else:
+            queryset = Lecture.objects.filter(models.Q(teacher=user) | models.Q(is_public=True))
+
+        # Search functionality
+        if search_query:
+            queryset = queryset.filter(name__icontains=search_query)
+
+        # Sorting functionality
+        if sort_option in ['name', 'teacher']:
+            if sort_option == 'teacher':
+                queryset = queryset.order_by(f"{'-' if sort_reverse else ''}teacher__first_name")
+            else:
+                queryset = queryset.order_by(f"{'-' if sort_reverse else ''}{sort_option}")
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['sort_reverse'] = self.request.GET.get('reverse', 'false')
+        context['search_query'] = self.request.GET.get('search', '')
+        return context
+    
+
+@method_decorator(login_required, name='dispatch')
+class task_manager_view(ListView):
+    model = Task
+    template_name = 'task_manager.html'
+    context_object_name = 'tasks'
+    paginate_by = 10
+
+    def get_queryset(self):
+        user = self.request.user
+        search_query = self.request.GET.get('search', '')
+        sort_option = self.request.GET.get('sort', 'special_id')
+        sort_reverse = self.request.GET.get('reverse', 'false') == 'true'
+
+        # Filtrowanie zadań na podstawie roli użytkownika
+        if user.role == 'admin':
+            queryset = Task.objects.all()
+        else:
+            queryset = Task.objects.filter(author=user) | Task.objects.filter(is_public=True)
+
+        # Wyszukiwanie po nazwie
+        if search_query:
+            queryset = queryset.filter(name__icontains=search_query)
+
+        # Sortowanie
+        if sort_option in ['special_id', 'name', 'author']:
+            if sort_option == 'author':
+                queryset = queryset.order_by(f"{'-' if sort_reverse else ''}author__first_name")
             else:
                 queryset = queryset.order_by(f"{'-' if sort_reverse else ''}{sort_option}")
 

@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Centrum Zarządzania Zadaniami</h2>
+
+    <!-- Przycisk "Dodaj Zadanie" -->
+    <div class="mb-3">
+        <a href="#" class="btn btn-primary">Dodaj Zadanie</a>
+    </div>
+
+    <!-- Formularz wyszukiwania -->
+    <form method="get" class="form-inline mb-3">
+        <input type="text" name="search" placeholder="Szukaj..." value="{{ request.GET.search }}" class="form-control mr-2">
+        <button type="submit" class="btn btn-secondary">Szukaj</button>
+    </form>
+
+    <!-- Tabela z zadaniami -->
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>
+                    <a href="?sort=special_id&reverse={% if request.GET.reverse == 'true' %}false{% else %}true{% endif %}" class="text-decoration-none">ID</a>
+                </th>
+                <th>
+                    <a href="?sort=name&reverse={% if request.GET.reverse == 'true' %}false{% else %}true{% endif %}" class="text-decoration-none">Nazwa</a>
+                </th>
+                <th>
+                    <a href="?sort=author&reverse={% if request.GET.reverse == 'true' %}false{% else %}true{% endif %}" class="text-decoration-none">Autor</a>
+                </th>
+                <th>Publiczny?</th>
+                <th>Akcje</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for task in tasks %}
+                <tr>
+                    <td>{{ task.special_id }}</td>
+                    <td><a href="{{ task.content_path }}" target="_blank">{{ task.name }}</a></td>
+                    <td>{{ task.author.first_name }} {{ task.author.last_name }}</td>
+                    <td>
+                        <span class="badge {% if task.is_public %}badge-success{% else %}badge-danger{% endif %}">
+                            {% if task.is_public %}TAK{% else %}NIE{% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        {% if task.author == request.user or request.user.role == 'admin' %}
+                            <a href="#" class="btn btn-sm btn-secondary">Edytuj</a>
+                        {% else %}
+                            <button class="btn btn-sm btn-secondary" disabled>Edytuj</button>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center">Brak dostępnych zadań</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Paginacja -->
+    <nav aria-label="Pagination">
+        <ul class="pagination justify-content-center">
+            {% if tasks.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page={{ tasks.previous_page_number }}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+            {% endif %}
+            {% for num in tasks.paginator.page_range %}
+                <li class="page-item {% if tasks.number == num %}active{% endif %}">
+                    <a class="page-link" href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page={{ num }}">{{ num }}</a>
+                </li>
+            {% endfor %}
+            {% if tasks.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page={{ tasks.next_page_number }}" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+{% endblock %}
