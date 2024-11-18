@@ -1,5 +1,7 @@
 from django.urls import path
 from . import views
+from django.conf.urls.static import static
+from django.conf import settings
 
 urlpatterns = [
     path("", views.home_view, name="home"),
@@ -9,4 +11,12 @@ urlpatterns = [
     path('contest_manager/', views.contest_manager_view.as_view(), name='contest_manager_view'),
     path('lecture_manager/', views.lecture_manager_view.as_view(), name='lecture_manager_view'),
     path('task_manager/', views.task_manager_view.as_view(), name='task_manager_view'),
-]
+    path('add_lecture/', views.add_lecture_view.as_view(), name='add_lecture'),
+    path('pdf_page/<str:pdf_path>/', views.pdf_page, name='pdf_page'),
+    path('add_task/', views.add_task_view.as_view(), name='add_task'),
+    path('edit_task/<int:task_id>/', views.edit_task_view, name='edit_task'),
+    path('create-test/', views.create_test_view, name='create_test'),
+    path('edit-test/', views.edit_test_view, name='edit_test'),
+    path('update-group/<int:group_id>/', views.update_group_view, name='update_group'),
+    path('create-group/<int:task_id>/', views.create_group_view, name='create_group'),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

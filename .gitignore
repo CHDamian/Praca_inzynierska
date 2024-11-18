@@ -51,3 +51,5 @@ celerybeat-schedule
 .pytest_cache/
 htmlcov/
 reports/
+
+sprawdzarka_dyplomowa/media/

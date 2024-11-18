@@ -1,6 +1,8 @@
 # forms.py
 from django import forms
 from django.contrib.auth import authenticate
+from .models import Lecture, Task, TestGroup, Test
+from django.core.exceptions import ValidationError
 import re
 
 class LoginForm(forms.Form):
@@ -68,3 +70,120 @@ class RegisterForm(forms.Form):
             raise forms.ValidationError("Hasła się nie zgadzają.")
         return cleaned_data
 
+class LectureForm(forms.ModelForm):
+    file = forms.FileField(required=True)  # Pole dla pliku .pdf
+    
+    class Meta:
+        model = Lecture
+        fields = ['name', 'is_public', 'file']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nazwa wykładu'}),
+            'is_public': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'file': forms.FileInput(attrs={'class': 'form-control'}),
+        }
+
+
+class TaskForm(forms.ModelForm):
+    file = forms.FileField(required=True)
+
+    class Meta:
+        model = Task
+        fields = ['name', 'special_id', 'time_limit', 'memory_limit', 'is_public', 'file']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'minlength': 3}),
+            'special_id': forms.TextInput(attrs={'class': 'form-control', 'minlength': 3}),
+            'time_limit': forms.NumberInput(attrs={'class': 'form-control'}),
+            'memory_limit': forms.NumberInput(attrs={'class': 'form-control'}),
+            'is_public': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'file': forms.FileInput(attrs={'class': 'form-control'}),
+        }
+
+
+class EditTaskForm(forms.ModelForm):
+    file = forms.FileField(required=False, widget=forms.ClearableFileInput(attrs={'class': 'form-control'}))
+
+    class Meta:
+        model = Task
+        fields = ['name', 'special_id', 'time_limit', 'memory_limit', 'is_public']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'minlength': 3}),
+            'special_id': forms.TextInput(attrs={'class': 'form-control', 'minlength': 3}),
+            'time_limit': forms.NumberInput(attrs={'class': 'form-control'}),
+            'memory_limit': forms.NumberInput(attrs={'class': 'form-control'}),
+            'is_public': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+    def clean_special_id(self):
+        special_id = self.cleaned_data.get('special_id')
+        if Task.objects.filter(special_id=special_id).exclude(id=self.instance.id).exists():
+            raise ValidationError("Identyfikator musi być unikalny.")
+        return special_id
+    
+
+class CreateGroupForm(forms.ModelForm):
+    class Meta:
+        model = TestGroup
+        fields = ['name', 'points']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nazwa grupy'}),
+            'points': forms.NumberInput(attrs={'class': 'form-control', 'min': 0, 'max': 100}),
+        }
+
+
+class TestCreateForm(forms.ModelForm):
+    # Dodatkowe pola
+    in_file = forms.FileField(
+        label="Plik wejściowy (.in)",
+        widget=forms.ClearableFileInput(attrs={'accept': '.in'}),
+        required=True
+    )
+    out_file = forms.FileField(
+        label="Plik wyjściowy (.out)",
+        widget=forms.ClearableFileInput(attrs={'accept': '.out'}),
+        required=True
+    )
+    group = forms.ModelChoiceField(
+        label="Grupa",
+        queryset=TestGroup.objects.all(),
+        required=False,
+        empty_label="Brak",
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
+    class Meta:
+        model = Test
+        fields = ['name', 'group']
+
+    def __init__(self, *args, **kwargs):
+        self.task = kwargs.pop('task', None)  # Zadanie przekazywane do formularza
+        super().__init__(*args, **kwargs)
+        if self.task:
+            # Filtrujemy grupy związane z tym zadaniem
+            self.fields['group'].queryset = TestGroup.objects.filter(task=self.task)
+
+    def clean_name(self):
+        """
+        Sprawdzanie unikalności nazwy testu w obrębie zadania.
+        """
+        name = self.cleaned_data['name']
+        if Test.objects.filter(task=self.task, name=name).exists():
+            raise forms.ValidationError(f"Test o nazwie '{name}' już istnieje dla tego zadania.")
+        return name
+
+    def clean_in_file(self):
+        """
+        Sprawdzanie poprawności rozszerzenia pliku wejściowego.
+        """
+        in_file = self.cleaned_data['in_file']
+        if not in_file.name.endswith('.in'):
+            raise forms.ValidationError("Plik wejściowy musi mieć rozszerzenie .in")
+        return in_file
+
+    def clean_out_file(self):
+        """
+        Sprawdzanie poprawności rozszerzenia pliku wyjściowego.
+        """
+        out_file = self.cleaned_data['out_file']
+        if not out_file.name.endswith('.out'):
+            raise forms.ValidationError("Plik wyjściowy musi mieć rozszerzenie .out")
+        return out_file

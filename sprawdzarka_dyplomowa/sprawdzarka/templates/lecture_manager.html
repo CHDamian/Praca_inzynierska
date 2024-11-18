@@ -6,7 +6,7 @@
 
     <!-- Dodaj Wykład button -->
     <div class="mb-3">
-        <a href="#" class="btn btn-primary">Dodaj Wykład</a>
+        <a href="/add_lecture" class="btn btn-primary">Dodaj Wykład</a>
     </div>
 
     <!-- Search form -->
@@ -28,7 +28,8 @@
         <tbody>
             {% for lecture in lectures %}
                 <tr>
-                    <td><a href="{{ lecture.content_path }}">{{ lecture.name }}</a></td>
+                    {% load static %}
+                    <td><a href="{% url 'pdf_page' pdf_path=lecture.content_path %}" target="_blank">{{ lecture.name }}</a></td>
                     <td>{{ lecture.teacher.first_name }} {{ lecture.teacher.last_name }}</td>
                     <td>
                         {% if lecture.is_public %}

@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.hashers import make_password, check_password
+from django.core.exceptions import ValidationError
 from django.db import models
 from datetime import datetime
 
@@ -83,6 +84,7 @@ class Task(models.Model):
     special_id = models.CharField(max_length=100, unique=True)
     author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tasks')
     content_path = models.TextField()
+    pdf_file = models.TextField()
     time_limit = models.IntegerField()
     memory_limit = models.IntegerField()
     is_public = models.BooleanField(default=False)
@@ -115,12 +117,19 @@ class TestGroup(models.Model):
 
     def __str__(self):
         return f"{self.task} - {self.name}"
+    
+    def clean(self):
+        total_points = sum(group.points for group in TestGroup.objects.filter(task=self.task))
+        if total_points > 100:
+            raise ValidationError('Suma punktów dla wszystkich grup nie może przekraczać 100.')
 
 
 class Test(models.Model):
     name = models.CharField(max_length=255)
     task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='tests')
-    group = models.ForeignKey(TestGroup, on_delete=models.CASCADE, related_name='tests')
+    group = models.ForeignKey(TestGroup, on_delete=models.CASCADE, related_name='tests', null=True, blank=True)
+    in_file = models.TextField()
+    out_file = models.TextField()
 
     class Meta:
         verbose_name_plural = 'Tests'

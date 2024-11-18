@@ -128,8 +128,11 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+SPRAWDZARKA_ROOT = os.path.join(BASE_DIR, 'sprawdzarka')
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_SAVE = os.path.join(SPRAWDZARKA_ROOT, 'media')
 AUTH_USER_MODEL = 'sprawdzarka.User'
 
 LOGIN_URL = '/login/'

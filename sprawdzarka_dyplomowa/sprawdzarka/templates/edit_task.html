@@ -1,0 +1,324 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Edytuj zadanie: {{ task.name }}</h1>
+    
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Informacje ogólne -->
+    <div class="mb-4">
+        <h3>Informacje ogólne</h3>
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-primary">Zapisz</button>
+        </form>
+        <button class="btn btn-danger mt-3">Usuń zadanie</button>
+    </div>
+
+    <!-- Testy -->
+    <div class="mt-4">
+        <h3>Testy</h3>
+    
+        <div class="test-form">
+            <h4>Dodaj nowy test</h4>
+            <form id="add-test-form">
+                <div class="form-group">
+                    <label for="test-name">Nazwa</label>
+                    <input type="text" id="test-name" name="name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="test-group">Grupa</label>
+                    <select id="test-group" name="group" class="form-control">
+                        <option value="">Brak</option>
+                        {% for group in test_groups %}
+                        <option value="{{ group.id }}">{{ group.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="test-in-file">Plik wejściowy (.in)</label>
+                    <input type="file" id="test-in-file" name="in_file" accept=".in" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="test-out-file">Plik wyjściowy (.out)</label>
+                    <input type="file" id="test-out-file" name="out_file" accept=".out" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-success">Dodaj Test</button>
+            </form>
+        </div>
+    
+        <!-- Lista testów -->
+        <div class="mt-3" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px;">
+            <table class="table table-hover table-sm">
+                <thead>
+                    <tr>
+                        <th>Nazwa</th>
+                        <th>Testy</th>
+                        <th>Grupa</th>
+                        <th>Akcje</th>
+                    </tr>
+                </thead>
+                <tbody id="test-list">
+                    {% for test in tests %}
+                    <tr data-test-id="{{ test.id }}">
+                        <td>{{ test.name }}</td>
+                        <td>
+                            <a href="{{ task.content_path }}\\tests\\{{ test.name }}\\{{ test.in_file }}" class="btn btn-sm btn-secondary" download>IN</a>
+                            <a href="{{ task.content_path }}\\tests\\{{ test.name }}\\{{ test.out_file }}" class="btn btn-sm btn-secondary" download>OUT</a>
+                        </td>
+                        <td>
+                            <select class="form-select group-select">
+                                <option value="" {% if not test.group %}selected{% endif %}>Brak</option>
+                                {% for group in test_groups %}
+                                <option value="{{ group.id }}" {% if test.group == group %}selected{% endif %}>{{ group.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-primary edit-test-btn">Edytuj</button>
+                            <button class="btn btn-sm btn-danger delete-test-btn">Usuń</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+
+    <!-- Grupy -->
+    <div class="mt-4">
+        <h3>Grupy</h3>
+    
+        <!-- Formularz do tworzenia nowych grup -->
+        <form id="create-group-form" class="mb-3">
+            <div class="mb-2">
+                <label for="group-name" class="form-label">Nazwa</label>
+                <input type="text" id="group-name" class="form-control" placeholder="Nazwa grupy" required />
+            </div>
+            <div class="mb-2">
+                <label for="group-points" class="form-label">Punkty</label>
+                <input type="number" id="group-points" class="form-control" min="0" max="100" placeholder="Punkty" required />
+            </div>
+            <button type="button" id="create-group-btn" class="btn btn-success">Dodaj Grupę</button>
+        </form>
+    
+        <!-- Lista grup (tabela z grupami) -->
+        <div class="mt-3" style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px;">
+            <table class="table table-hover table-sm">
+                <thead>
+                    <tr>
+                        <th>Nazwa</th>
+                        <th>Punkty</th>
+                        <th>Akcje</th>
+                    </tr>
+                </thead>
+                <tbody id="group-list">
+                    {% for group in test_groups %}
+                    <tr data-group-id="{{ group.id }}">
+                        <td>{{ group.name }}</td>
+                        <td>
+                            <input type="number" class="form-control group-points-input" value="{{ group.points }}" min="0" max="100" />
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-primary edit-group-btn">Edytuj</button>
+                            <button class="btn btn-sm btn-danger delete-group-btn">Usuń</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    
+</div>
+
+<script>
+
+    //Dodawanie testu
+    document.getElementById('add-test-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const formData = new FormData(this);
+        formData.append('task_id', TASK_ID); // TASK_ID powinno być zdefiniowane w JavaScript
+
+        fetch('/create-test/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': CSRF_TOKEN, // CSRF_TOKEN musi być zdefiniowany w Twoim szablonie
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert(data.message);
+
+                // Dodaj nowy rekord do tabeli
+                const table = document.querySelector('#tests-table tbody');
+                const newRow = document.createElement('tr');
+                newRow.innerHTML = `
+                    <td>${data.test.name}</td>
+                    <td>
+                        <button class="btn btn-primary btn-sm">IN</button>
+                        <button class="btn btn-secondary btn-sm">OUT</button>
+                    </td>
+                    <td>${data.test.group}</td>
+                    <td>
+                        <button class="btn btn-warning btn-sm">Edytuj</button>
+                        <button class="btn btn-danger btn-sm">Usuń</button>
+                    </td>
+                `;
+                table.appendChild(newRow);
+
+                // Wyczyść formularz
+                document.getElementById('add-test-form').reset();
+            } else {
+                alert('Błąd: ' + data.message);
+            }
+        })
+        .catch(error => console.error('Błąd:', error));
+    });
+
+
+    // Edycja testu
+    document.addEventListener('DOMContentLoaded', () => {
+        // Obsługa edycji grupy testu
+        const testList = document.getElementById('test-list');
+
+        testList.addEventListener('click', (event) => {
+            if (event.target.classList.contains('edit-test-btn')) {
+                const row = event.target.closest('tr');
+                const testId = row.dataset.testId;
+                const select = row.querySelector('.group-select');
+                const groupId = select.value;
+
+                // Wysłanie żądania AJAX
+                fetch('/edit-test/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}',
+                    },
+                    body: JSON.stringify({ test_id: testId, group_id: groupId }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert(data.message);
+                    } else {
+                        alert('Błąd: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    alert('Wystąpił błąd podczas edycji grupy testu.');
+                    console.error(error);
+                });
+            }
+        });
+    });
+
+
+    // Dodawanie grupy
+    document.addEventListener('DOMContentLoaded', () => {
+        const createGroupForm = document.getElementById('create-group-form');
+        const groupList = document.getElementById('group-list');
+
+        document.getElementById('create-group-btn').addEventListener('click', () => {
+            const groupName = document.getElementById('group-name').value;
+            const groupPoints = document.getElementById('group-points').value;
+
+            // Wysyłanie żądania AJAX
+            fetch(`/create-group/{{ task.id }}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                },
+                body: JSON.stringify({ name: groupName, points: groupPoints }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'error') {
+                    alert(data.message);
+                } else {
+                    // Dodaj nową grupę do tabeli
+                    const newRow = document.createElement('tr');
+                    newRow.dataset.groupId = data.group.id;
+                    newRow.innerHTML = `
+                        <td>${data.group.name}</td>
+                        <td><input type="number" class="form-control group-points-input" value="${data.group.points}" min="0" max="100" /></td>
+                        <td>
+                            <button class="btn btn-sm btn-primary edit-group-btn">Edytuj</button>
+                            <button class="btn btn-sm btn-danger delete-group-btn">Usuń</button>
+                        </td>
+                    `;
+                    groupList.appendChild(newRow);
+
+                    // Wyczyść formularz
+                    createGroupForm.reset();
+                    alert('Grupa została pomyślnie dodana.');
+                }
+            })
+            .catch(error => {
+                alert('Wystąpił błąd podczas tworzenia grupy.');
+                console.error(error);
+            });
+        });
+    });
+
+    // Edycja grupy
+    document.addEventListener('DOMContentLoaded', () => {
+        const groupList = document.getElementById('group-list');
+    
+        groupList.addEventListener('click', (event) => {
+            if (event.target.classList.contains('edit-group-btn')) {
+                const row = event.target.closest('tr');
+                const groupId = row.dataset.groupId;
+                const pointsInput = row.querySelector('.group-points-input');
+                const newPoints = parseInt(pointsInput.value, 10);
+    
+                // Walidacja sumy punktów
+                const totalPoints = Array.from(document.querySelectorAll('.group-points-input'))
+                    .reduce((sum, input) => sum + parseInt(input.value, 10), 0);
+    
+                if (totalPoints > 100) {
+                    alert('Suma punktów dla wszystkich grup nie może przekraczać 100.');
+                    return;
+                }
+    
+                // Wysyłanie żądania AJAX do serwera
+                fetch(`/update-group/${groupId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}',
+                    },
+                    body: JSON.stringify({ points: newPoints }),
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Wystąpił błąd podczas aktualizacji grupy.');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    alert('Grupa została pomyślnie zaktualizowana.');
+                })
+                .catch(error => {
+                    alert(error.message);
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}

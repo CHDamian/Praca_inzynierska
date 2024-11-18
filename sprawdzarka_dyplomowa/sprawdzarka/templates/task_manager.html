@@ -6,7 +6,7 @@
 
     <!-- Przycisk "Dodaj Zadanie" -->
     <div class="mb-3">
-        <a href="#" class="btn btn-primary">Dodaj Zadanie</a>
+        <a href="/add_task" class="btn btn-primary">Dodaj Zadanie</a>
     </div>
 
     <!-- Formularz wyszukiwania -->
@@ -36,7 +36,7 @@
             {% for task in tasks %}
                 <tr>
                     <td>{{ task.special_id }}</td>
-                    <td><a href="{{ task.content_path }}" target="_blank">{{ task.name }}</a></td>
+                    <td><a href="{% url 'pdf_page' pdf_path=task.pdf_file %}" target="_blank">{{ task.name }}</a></td>
                     <td>{{ task.author.first_name }} {{ task.author.last_name }}</td>
                     <td>
                         <span class="badge {% if task.is_public %}badge-success{% else %}badge-danger{% endif %}">
@@ -45,7 +45,7 @@
                     </td>
                     <td>
                         {% if task.author == request.user or request.user.role == 'admin' %}
-                            <a href="#" class="btn btn-sm btn-secondary">Edytuj</a>
+                            <a href="{% url 'edit_task' task_id=task.id %}" class="btn btn-sm btn-secondary">Edytuj</a>
                         {% else %}
                             <button class="btn btn-sm btn-secondary" disabled>Edytuj</button>
                         {% endif %}
