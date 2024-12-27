@@ -143,50 +143,51 @@
 </div>
 
 <script>
+    const TASK_ID = {{ task.id }};
 
     //Dodawanie testu
-    document.getElementById('add-test-form').addEventListener('submit', function(e) {
+    document.getElementById('add-test-form').addEventListener('submit', function (e) {
         e.preventDefault();
 
         const formData = new FormData(this);
-        formData.append('task_id', TASK_ID); // TASK_ID powinno być zdefiniowane w JavaScript
+        formData.append('task_id', TASK_ID); // TASK_ID jest teraz zdefiniowany
 
         fetch('/create-test/', {
             method: 'POST',
             body: formData,
             headers: {
-                'X-CSRFToken': CSRF_TOKEN, // CSRF_TOKEN musi być zdefiniowany w Twoim szablonie
-            }
+                'X-CSRFToken': '{{ csrf_token }}',
+            },
         })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                alert(data.message);
+            .then((response) => response.json())
+            .then((data) => {
+                if (data.status === 'success') {
+                    alert(data.message);
 
-                // Dodaj nowy rekord do tabeli
-                const table = document.querySelector('#tests-table tbody');
-                const newRow = document.createElement('tr');
-                newRow.innerHTML = `
-                    <td>${data.test.name}</td>
-                    <td>
-                        <button class="btn btn-primary btn-sm">IN</button>
-                        <button class="btn btn-secondary btn-sm">OUT</button>
-                    </td>
-                    <td>${data.test.group}</td>
-                    <td>
-                        <button class="btn btn-warning btn-sm">Edytuj</button>
-                        <button class="btn btn-danger btn-sm">Usuń</button>
-                    </td>
-                `;
-                table.appendChild(newRow);
+                    // Dodaj nowy rekord do tabeli
+                    const table = document.querySelector('#test-list');
+                    const newRow = document.createElement('tr');
+                    newRow.innerHTML = `
+                        <td>${data.test.name}</td>
+                        <td>
+                            <a href="${data.test.in_file}" class="btn btn-sm btn-secondary" download>IN</a>
+                            <a href="${data.test.out_file}" class="btn btn-sm btn-secondary" download>OUT</a>
+                        </td>
+                        <td>${data.test.group}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary edit-test-btn">Edytuj</button>
+                            <button class="btn btn-sm btn-danger delete-test-btn">Usuń</button>
+                        </td>
+                    `;
+                    table.appendChild(newRow);
 
-                // Wyczyść formularz
-                document.getElementById('add-test-form').reset();
-            } else {
-                alert('Błąd: ' + data.message);
-            }
-        })
-        .catch(error => console.error('Błąd:', error));
+                    // Wyczyść formularz
+                    this.reset();
+                } else {
+                    alert('Błąd: ' + data.message);
+                }
+            })
+            .catch((error) => console.error('Błąd:', error));
     });
 
 

@@ -1,0 +1,230 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Edytuj zadania konkursu: {{ contest.name }}</h1>
+
+    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+
+    <div class="mt-4">
+        <h3>Zapisane zadania</h3>
+        <table class="table table-striped" id="saved-tasks-table">
+            <thead>
+                <tr>
+                    <th>Nazwa</th>
+                    <th>Autor</th>
+                    <th>Usuń</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for saved_task in saved_tasks %}
+                <tr id="saved-task-{{ saved_task.task.id }}">
+                    <td>{{ saved_task.task.name }}</td>
+                    <td>{{ saved_task.task.author.first_name }} {{ saved_task.task.author.last_name }}</td>
+                    <td>
+                        <button class="btn btn-danger btn-sm remove-task-btn" data-task-id="{{saved_task.task.id}}">Usuń</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="mt-4">
+        <h3>Dostępne zadania</h3>
+        <table class="table table-striped" id="available-tasks-table">
+            <thead>
+                <tr>
+                    <th>Nazwa</th>
+                    <th>Autor</th>
+                    <th>Dodaj</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in tasks %}
+                <tr id="available-task-{{ task.id }}">
+                    <td>{{ task.name }}</td>
+                    <td>{{ task.author.first_name }} {{ task.author.last_name }}</td>
+                    <td>
+                        <button class="btn btn-success btn-sm add-task-btn" data-task-id="{{ task.id }}">Dodaj</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Obsługa dodawania zadań do konkursu
+        const addButtons = document.querySelectorAll('.add-task-btn');
+
+        addButtons.forEach(button => {
+            button.addEventListener('click', function () {
+                const taskId = this.getAttribute('data-task-id');
+                const contestId = "{{ contest.id }}";
+                const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+
+                fetch("{% url 'add_task_to_contest' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ task_id: taskId, contest_id: contestId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(`Błąd: ${data.error}`);
+                    } else {
+                        // Usuń zadanie z dostępnych
+                        const availableRow = document.querySelector(`#available-task-${taskId}`);
+                        if (availableRow) {
+                            availableRow.remove();
+                        }
+
+                        // Dodaj zadanie do zapisanych
+                        const savedTasksTable = document.querySelector('#saved-tasks-table tbody');
+                        if (savedTasksTable) {
+                            const newRow = document.createElement('tr');
+                            newRow.id = `saved-task-${taskId}`;
+                            newRow.innerHTML = `
+                                <td>${data.task_name}</td>
+                                <td>${data.author}</td>
+                                <td>
+                                    <button class="btn btn-danger btn-sm remove-task-btn" data-task-id="${taskId}">Usuń</button>
+                                </td>
+                            `;
+                            savedTasksTable.appendChild(newRow);
+                        }
+
+                        // Ponownie przypisz event listener do nowego przycisku "Usuń"
+                        attachRemoveTaskListeners();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Wystąpił błąd podczas dodawania zadania.');
+                });
+            });
+        });
+
+        // Obsługa usuwania zadań z konkursu
+        function attachRemoveTaskListeners() {
+            const removeButtons = document.querySelectorAll('.remove-task-btn');
+
+            removeButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    const taskId = this.getAttribute('data-task-id');
+                    const contestId = "{{ contest.id }}";
+                    const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+
+                    fetch("{% url 'remove_task_from_contest' %}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({ task_id: taskId, contest_id: contestId })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            alert(`Błąd: ${data.error}`);
+                        } else {
+                            // Usuń zadanie z zapisanych
+                            const savedRow = document.querySelector(`#saved-task-${taskId}`);
+                            if (savedRow) {
+                                savedRow.remove();
+                            }
+
+                            // Dodaj zadanie do dostępnych
+                            const availableTasksTable = document.querySelector('#available-tasks-table tbody');
+                            if (availableTasksTable) {
+                                const newRow = document.createElement('tr');
+                                newRow.id = `available-task-${taskId}`;
+                                newRow.innerHTML = `
+                                    <td>${data.task_name}</td>
+                                    <td>${data.author}</td>
+                                    <td>
+                                        <button class="btn btn-success btn-sm add-task-btn" data-task-id="${taskId}">Dodaj</button>
+                                    </td>
+                                `;
+                                availableTasksTable.appendChild(newRow);
+                            }
+
+                            // Ponownie przypisz event listener do nowego przycisku "Dodaj"
+                            attachAddTaskListeners();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Wystąpił błąd podczas usuwania zadania.');
+                    });
+                });
+            });
+        }
+
+        // Początkowe przypisanie listenerów do przycisków "Usuń"
+        attachRemoveTaskListeners();
+
+        function attachAddTaskListeners() {
+            const addButtons = document.querySelectorAll('.add-task-btn');
+
+            addButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    const taskId = this.getAttribute('data-task-id');
+                    const contestId = "{{ contest.id }}";
+                    const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+
+                    fetch("{% url 'add_task_to_contest' %}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({ task_id: taskId, contest_id: contestId })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            alert(`Błąd: ${data.error}`);
+                        } else {
+                            // Usuń zadanie z dostępnych
+                            const availableRow = document.querySelector(`#available-task-${taskId}`);
+                            if (availableRow) {
+                                availableRow.remove();
+                            }
+
+                            // Dodaj zadanie do zapisanych
+                            const savedTasksTable = document.querySelector('#saved-tasks-table tbody');
+                            if (savedTasksTable) {
+                                const newRow = document.createElement('tr');
+                                newRow.id = `saved-task-${taskId}`;
+                                newRow.innerHTML = `
+                                    <td>${data.task_name}</td>
+                                    <td>${data.author}</td>
+                                    <td>
+                                        <button class="btn btn-danger btn-sm remove-task-btn" data-task-id="${taskId}">Usuń</button>
+                                    </td>
+                                `;
+                                savedTasksTable.appendChild(newRow);
+                            }
+
+                            // Ponownie przypisz event listener do nowego przycisku "Usuń"
+                            attachRemoveTaskListeners();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('Wystąpił błąd podczas dodawania zadania.');
+                    });
+                });
+            });
+        }
+    });
+</script>
+
+{% endblock %}

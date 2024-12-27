@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center">Lista Zadań</h1>
+    
+    {% if error_message %}
+        <div class="alert alert-danger text-center" role="alert">
+            {{ error_message }}
+        </div>
+    {% else %}
+        <h3 class="text-center">Wybrany kurs: {{ selected_contest.name }}</h3>
+        <table class="table table-striped mt-4">
+            <thead class="thead-dark">
+                <tr>
+                    <th scope="col">Nazwa</th>
+                    <th scope="col">Twój wynik</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in tasks_with_scores %}
+                <tr>
+                    <td>
+                        <a href="{% url 'pdf_page' pdf_path=item.task.pdf_file %}">
+                            {{ item.task.name }}
+                        </a>
+                    </td>
+                    <td>
+                        <span class="badge"
+                              style="background-color: 
+                                {% if item.score == 0 %}
+                                    red
+                                {% elif item.score < 50 %}
+                                    orange
+                                {% elif item.score < 75 %}
+                                    yellow
+                                {% elif item.score < 100 %}
+                                    lightgreen
+                                {% else %}
+                                    green
+                                {% endif %};
+                                color: black;">
+                            {{ item.score }}
+                        </span>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="2" class="text-center">Brak zadań dla tego konkursu.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+</div>
+{% endblock %}

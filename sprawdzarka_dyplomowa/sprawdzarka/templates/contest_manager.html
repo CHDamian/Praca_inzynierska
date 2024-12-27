@@ -6,7 +6,7 @@
 
     <!-- Przycisk "Stwórz Kontest" -->
     <div class="mb-3">
-        <a href="#" class="btn btn-primary">Stwórz Kurs</a>
+        <a href="/add_contest" class="btn btn-primary">Stwórz Kurs</a>
     </div>
 
     <!-- Formularz wyszukiwania -->
@@ -42,7 +42,7 @@
                     <td>{{ contest.start_date|default:"N/A" }}</td>
                     <td>{{ contest.end_date|default:"N/A" }}</td>
                     <td>
-                        <a href="#" class="btn btn-sm btn-secondary">Edytuj</a>
+                        <a href="{% url 'edit_contest' contest_id=contest.id %}" class="btn btn-sm btn-secondary">Edytuj</a>
                     </td>
                 </tr>
             {% empty %}

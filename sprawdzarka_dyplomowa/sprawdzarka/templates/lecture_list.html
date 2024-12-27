@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center">Lista Wykładów</h1>
+    
+    {% if error_message %}
+        <div class="alert alert-danger text-center" role="alert">
+            {{ error_message }}
+        </div>
+    {% else %}
+        <h3 class="text-center">Wybrany kurs: {{ selected_contest.name }}</h3>
+        <table class="table table-striped mt-4">
+            <thead class="thead-dark">
+                <tr>
+                    <th scope="col">Nazwa</th>
+                    <th scope="col">Autor</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for contest_lecture in contest_lectures %}
+                <tr>
+                    <td>
+                        <a href="{% url 'pdf_page' pdf_path=contest_lecture.lecture.content_path %}">
+                            {{ contest_lecture.lecture.name }}
+                        </a>
+                    </td>
+                    <td>{{ contest_lecture.lecture.teacher.get_full_name }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="2" class="text-center">Brak wykładów dla tego konkursu.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+</div>
+{% endblock %}

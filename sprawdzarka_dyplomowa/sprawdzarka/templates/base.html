@@ -25,6 +25,8 @@
             position: relative;  /* Ustawienie względne dla dropdown */
         }
     </style>
+    <script src="https://unpkg.com/htmx.org"></script>
+    <meta name="htmx-config" content='{ "includeIndicatorStyles": true }'>
 </head>
 <body>
     <!-- Pasek na górze -->
@@ -67,16 +69,22 @@
                         </li>
 
                         <li class="nav-item">
-                            <a class="nav-link" href="#">Kursy</a>
+                            <a class="nav-link" href="/contests">Kursy</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#">Wykłady</a>
+                            <a class="nav-link" href="/lecture_list">Wykłady</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#">Zadania</a>
+                            <a class="nav-link" href="/task_list">Zadania</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="#">Wyślij</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/user-solutions">Rozwiązania</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">Ranking</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="#">Pytania</a>

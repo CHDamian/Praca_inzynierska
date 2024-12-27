@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Edytuj wykłady kursu: {{ contest.name }}</h1>
+
+    <!-- Token CSRF ukryty na początku strony -->
+    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+
+    <div class="mt-4">
+        <h3>Zapisane</h3>
+        <table class="table table-striped" id="saved-lectures-table">
+            <thead>
+                <tr>
+                    <th>Nazwa</th>
+                    <th>Prowadzący</th>
+                    <th>Usuń</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for saved_lecture in saved_lectures %}
+                <tr id="saved-lecture-{{ saved_lecture.lecture.id }}">
+                    <td>
+                        <a href="{% url 'pdf_page' pdf_path=saved_lecture.lecture.content_path %}">
+                            {{ saved_lecture.lecture.name }}
+                        </a>
+                    </td>
+                    <td>
+                        {{ saved_lecture.lecture.teacher.first_name }} {{ saved_lecture.lecture.teacher.last_name }}
+                    </td>
+                    <td>
+                        <button class="btn btn-danger btn-sm">Usuń</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="mt-4">
+        <h3>Dostępne</h3>
+        <table class="table table-striped" id="available-lectures-table">
+            <thead>
+                <tr>
+                    <th>Nazwa</th>
+                    <th>Prowadzący</th>
+                    <th>Dodaj</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for lecture in lectures %}
+                <tr id="available-lecture-{{ lecture.id }}">
+                    <td>
+                        <a href="{% url 'pdf_page' pdf_path=lecture.content_path %}">
+                            {{ lecture.name }}
+                        </a>
+                    </td>
+                    <td>
+                        {{ lecture.teacher.first_name }} {{ lecture.teacher.last_name }}
+                    </td>
+                    <td>
+                        <button class="btn btn-success btn-sm add-lecture-btn" data-lecture-id="{{ lecture.id }}">Dodaj</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const addButtons = document.querySelectorAll('.add-lecture-btn');
+
+        addButtons.forEach(button => {
+            button.addEventListener('click', function () {
+                const lectureId = this.getAttribute('data-lecture-id');
+                const contestId = "{{ contest.id }}";
+                const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+
+                fetch("{% url 'add_lecture_to_contest' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ lecture_id: lectureId, contest_id: contestId }) // Dane w formacie JSON
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(`Błąd: ${data.error}`);
+                    } else {
+                        // Usuń wykład z dostępnych
+                        const availableRow = document.querySelector(`#available-lecture-${lectureId}`);
+                        if (availableRow) {
+                            availableRow.remove();
+                        }
+
+                        // Dodaj wykład do zapisanych
+                        const savedLecturesTable = document.querySelector('#saved-lectures-table tbody');
+                        if (savedLecturesTable) {
+                            const newRow = document.createElement('tr');
+                            newRow.id = `saved-lecture-${lectureId}`;
+                            const pdfUrl = `{% url 'pdf_page' pdf_path='PLACEHOLDER' %}`.replace('PLACEHOLDER', data.content_path);
+                            newRow.innerHTML = `
+                                <td>
+                                    <a href="${pdfUrl}">
+                                        ${data.lecture_name}
+                                    </a>
+                                </td>
+                                <td>${data.teacher}</td>
+                                <td>
+                                    <button class="btn btn-danger btn-sm">Usuń</button>
+                                </td>
+                            `;
+                            savedLecturesTable.appendChild(newRow);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Wystąpił błąd podczas dodawania wykładu.');
+                });
+            });
+        });
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const removeButtons = document.querySelectorAll('#saved-lectures-table .btn-danger');
+
+        removeButtons.forEach(button => {
+            button.addEventListener('click', function () {
+                const lectureId = this.closest('tr').id.replace('saved-lecture-', '');
+                const contestId = "{{ contest.id }}";
+                const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+
+                fetch("{% url 'remove_lecture_from_contest' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ lecture_id: lectureId, contest_id: contestId })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(`Błąd: ${data.error}`);
+                    } else {
+                        // Usuń wykład z zapisanych
+                        const savedRow = document.querySelector(`#saved-lecture-${lectureId}`);
+                        if (savedRow) {
+                            savedRow.remove();
+                        }
+
+                        // Dodaj wykład do dostępnych
+                        const availableLecturesTable = document.querySelector('#available-lectures-table tbody');
+                        if (availableLecturesTable) {
+                            const newRow = document.createElement('tr');
+                            newRow.id = `available-lecture-${lectureId}`;
+                            const pdfUrl = `{% url 'pdf_page' pdf_path='PLACEHOLDER' %}`.replace('PLACEHOLDER', data.content_path);
+                            newRow.innerHTML = `
+                                <td>
+                                    <a href="${pdfUrl}">
+                                        ${data.lecture_name}
+                                    </a>
+                                </td>
+                                <td>${data.teacher}</td>
+                                <td>
+                                    <button class="btn btn-success btn-sm add-lecture-btn" data-lecture-id="${lectureId}">Dodaj</button>
+                                </td>
+                            `;
+                            availableLecturesTable.appendChild(newRow);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Wystąpił błąd podczas usuwania wykładu.');
+                });
+            });
+        });
+    });
+
+</script>
+
+
+
+
+{% endblock %}

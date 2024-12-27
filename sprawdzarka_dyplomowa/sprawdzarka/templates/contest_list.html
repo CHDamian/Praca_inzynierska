@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Lista kursów</h1>
+    
+    <h2>Moje kursy</h2>
+    <table class="table table-striped">
+        <thead class="thead-dark">
+            <tr>
+                <th scope="col">Nazwa</th>
+                <th scope="col">Prowadzący</th>
+                <th scope="col">Start</th>
+                <th scope="col">Koniec</th>
+                <th scope="col">Akcje</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for signup in user_contests %}
+            <tr class="{% if signup.is_selected %}table-success{% endif %}">
+                <td>{{ signup.contest.name }}</td>
+                <td>{{ signup.contest.teacher.first_name }} {{ signup.contest.teacher.last_name }}</td>
+                <td>{{ signup.contest.start_date|default:"Brak" }}</td>
+                <td>{{ signup.contest.end_date|default:"Brak" }}</td>
+                <td>
+                    <button class="btn btn-primary btn-sm">Wybierz</button>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center">Brak kursów</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Dostępne kursy</h2>
+    <table class="table table-striped">
+        <thead class="thead-dark">
+            <tr>
+                <th scope="col">Nazwa</th>
+                <th scope="col">Prowadzący</th>
+                <th scope="col">Start</th>
+                <th scope="col">Koniec</th>
+                <th scope="col">Akcje</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for contest in available_contests %}
+            <tr>
+                <td>{{ contest.name }}</td>
+                <td>{{ contest.teacher.first_name }} {{ contest.teacher.last_name }}</td>
+                <td>{{ contest.start_date|default:"Brak" }}</td>
+                <td>{{ contest.end_date|default:"Brak" }}</td>
+                <td>
+                    <a href="{% url 'sign_to_contest' contest.id %}" class="btn btn-success btn-sm">Dołącz</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center">Brak dostępnych kursów</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

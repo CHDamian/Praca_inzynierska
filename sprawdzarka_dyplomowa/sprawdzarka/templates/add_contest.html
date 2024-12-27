@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Dodaj Konkurs</h2>
+    
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="id_name">Nazwa konkursu</label>
+            {{ form.name }}
+        </div>
+        
+        <div class="form-group">
+            <label for="id_start_date">Początek konkursu</label>
+            {{ form.start_date }}
+        </div>
+        
+        <div class="form-group">
+            <label for="id_end_date">Koniec konkursu</label>
+            {{ form.end_date }}
+        </div>
+        
+        <div class="form-group">
+            <label for="id_send_limit">Limit wysyłek</label>
+            {{ form.send_limit }}
+        </div>
+        
+        <div class="form-group">
+            <label for="id_password">Hasło (opcjonalne)</label>
+            {{ form.password }}
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Zapisz</button>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Edytuj konkurs: {{ contest.name }}</h1>
+
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <form method="POST" class="mt-4">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">Zapisz zmiany</button>
+        <a href="#" class="btn btn-danger">Usuń</a>
+    </form>
+
+    <div class="mt-5">
+        <h3>Opcje</h3>
+        <a href="{% url 'edit_contest_lectures' contest_id=contest.id %}" class="btn btn-secondary">Wykłady</a>
+        <a href="{% url 'edit_contest_tasks' contest_id=contest.id %}" class="btn btn-secondary">Zadania</a>
+    </div>
+</div>
+{% endblock %}

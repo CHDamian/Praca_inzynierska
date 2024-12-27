@@ -1,7 +1,7 @@
 # forms.py
 from django import forms
 from django.contrib.auth import authenticate
-from .models import Lecture, Task, TestGroup, Test
+from .models import Lecture, Task, TestGroup, Test, Contest
 from django.core.exceptions import ValidationError
 import re
 
@@ -187,3 +187,15 @@ class TestCreateForm(forms.ModelForm):
         if not out_file.name.endswith('.out'):
             raise forms.ValidationError("Plik wyjściowy musi mieć rozszerzenie .out")
         return out_file
+    
+class ContestForm(forms.ModelForm):
+    class Meta:
+        model = Contest
+        fields = ['name', 'start_date', 'end_date', 'send_limit', 'password']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nazwa konkursu'}),
+            'start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'end_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'send_limit': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
+            'password': forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Hasło (opcjonalne)'}),
+        }
