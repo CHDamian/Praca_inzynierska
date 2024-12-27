@@ -11,7 +11,7 @@ from django.contrib import messages
 from django.views.generic import ListView
 from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_POST
-from .forms import LoginForm, RegisterForm, LectureForm, TaskForm, EditTaskForm, TestCreateForm, ContestForm
+from .forms import LoginForm, RegisterForm, LectureForm, TaskForm, EditTaskForm, TestCreateForm, ContestForm, SendSolutionForm
 from .decorators import not_logged_in_required, logged_in_required, user_not_teacher, user_not_admin
 from django.contrib.auth.decorators import login_required
 from .models import User, Contest, Lecture, Task, Test, TestGroup, ContestLecture, ContestTask, ContestSigned, Solution
@@ -23,6 +23,9 @@ from django.views import View
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Sum, Q
+from .tasks import execute_cpp, execute_java, execute_cs
+from datetime import datetime
+from django.utils.timezone import now
 
 @not_logged_in_required
 def login_view(request):
@@ -914,5 +917,97 @@ class UserSolutionsView(ListView):
                 solution.color = None
 
         return context
+
+@login_required
+def send_solution_view(request):
+    user = request.user
+    context = {
+        'contest_found': False,
+        'form': None,
+        'tasks': []
+    }
+
+    # GET request handling
+    if request.method == 'GET':
+        signed_contests = ContestSigned.objects.filter(user=user, is_selected=True)
+
+        if signed_contests.count() == 1:
+            signed_contest = signed_contests.first()
+            contest_tasks = ContestTask.objects.filter(contest=signed_contest.contest)
+
+            context['contest_found'] = True
+            context['form'] = SendSolutionForm(tasks=contest_tasks)
+            context['tasks'] = contest_tasks
+        else:
+            context['error_message'] = "Wystąpił błąd, wybierz nowy kurs!"
+
+        return render(request, 'send_solution.html', context)
+
+    # POST request handling
+    elif request.method == 'POST':
+        contest_tasks = ContestTask.objects.filter(contest__contestsigned__user=user, contest__contestsigned__is_selected=True)
+        form = SendSolutionForm(request.POST, request.FILES, tasks=contest_tasks)
+
+        if not form.is_valid():
+            context['form'] = form
+            context['error_message'] = "Formularz zawiera błędy. Proszę poprawić i spróbować ponownie."
+            return render(request, 'send_solution.html', context)
+
+        # Validate file extension based on language
+        solution_file = request.FILES.get('solution_file')
+        if solution_file:
+            lang = form.cleaned_data['lang']
+            file_extension = solution_file.name.split('.')[-1].lower()
+            valid_extensions = {
+                'C/C++': ['c', 'cpp', 'cc'],
+                'Java': ['java'],
+                'C#': ['cs']
+            }
+
+            if file_extension not in valid_extensions.get(lang, []):
+                context['form'] = form
+                context['error_message'] = "Nieprawidłowe rozszerzenie pliku dla wybranego języka."
+                return render(request, 'send_solution.html', context)
+
+        # Prepare solution folder and file path
+        try:
+            contest_task = form.cleaned_data['contest_task']
+            contest_name = contest_task.contest.name
+            task_name = contest_task.task.name
+            timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S_%f")
+            random_suffix = random.randint(1000, 9999)
+            folder_name = f"{timestamp}_{contest_name}_{task_name}_{user.username}_{random_suffix}"
+            folder_path = os.path.join('media', 'solutions', folder_name)
+
+            os.makedirs(folder_path, exist_ok=True)
+
+            file_path = os.path.join(folder_path, solution_file.name)
+            with open(file_path, 'wb+') as destination:
+                for chunk in solution_file.chunks():
+                    destination.write(chunk)
+
+            src_path = os.path.join(folder_name, solution_file.name)
+        except Exception as e:
+            context['form'] = form
+            context['error_message'] = f"Błąd podczas zapisywania pliku: {str(e)}"
+            return render(request, 'send_solution.html', context)
+
+        # Save solution record
+        solution = form.save(commit=False)
+        solution.author = user
+        solution.send_date = now()
+        solution.src_path = src_path
+        solution.status = 'waiting'
+        solution.save()
+
+        # Execute the appropriate task based on language
+        if lang == 'C/C++':
+            execute_cpp.delay(solution.id)
+        elif lang == 'Java':
+            execute_java.delay(solution.id)
+        elif lang == 'C#':
+            execute_cs.delay(solution.id)
+
+        return redirect('user_solutions')
 
 

@@ -1,7 +1,7 @@
 # forms.py
 from django import forms
 from django.contrib.auth import authenticate
-from .models import Lecture, Task, TestGroup, Test, Contest
+from .models import Lecture, Task, TestGroup, Test, Contest, Solution
 from django.core.exceptions import ValidationError
 import re
 
@@ -199,3 +199,21 @@ class ContestForm(forms.ModelForm):
             'send_limit': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
             'password': forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Hasło (opcjonalne)'}),
         }
+
+class SendSolutionForm(forms.ModelForm):
+    solution_file = forms.FileField(
+        label="Rozwiązanie",
+        required=True,
+        widget=forms.ClearableFileInput(attrs={'accept': '.c,.cpp,.cc,.java,.cs'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        tasks = kwargs.pop('tasks', [])
+        super().__init__(*args, **kwargs)
+        self.fields['contest_task'].queryset = tasks
+        self.fields['contest_task'].label = "Zadanie"
+        self.fields['lang'].label = "Język"
+
+    class Meta:
+        model = Solution
+        fields = ['contest_task', 'lang', 'solution_file']

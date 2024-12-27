@@ -32,4 +32,5 @@ urlpatterns = [
     path('lecture_list/', views.lecture_list, name='lecture_list'),
     path('task_list/', views.task_list, name='task_list'),
     path('user-solutions/', views.UserSolutionsView.as_view(), name='user_solutions'),
+    path('send_solution/', views.send_solution_view, name='send_solution'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
