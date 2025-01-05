@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>
+        Raport zadania <strong>{{ solution.contest_task.task.name }}</strong> z dnia {{ solution.send_date|date:"d.m.Y" }}
+    </h1>
+
+    {% if not is_done %}
+        <p>Testing still in progress...</p>
+    {% else %}
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Grupa</th>
+                    <th>Test</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for group, results in grouped_results.items %}
+                    <tr>
+                        <td rowspan="{{ results|length }}">{{ group }}</td>
+                        <td>{{ results.0.test.name }}</td>
+                        <td style="background-color: 
+                            {% if results.0.final_status == 'OK' %}lightgreen
+                            {% elif results.0.final_status in 'TLE MLE' %}yellow
+                            {% elif results.0.final_status == 'WA' %}orange
+                            {% elif results.0.final_status == 'ERR' %}red
+                            {% endif %};">{{ results.0.final_status }}</td>
+                    </tr>
+                    {% for result in results|slice:"1:" %}
+                    <tr>
+                        <td>{{ result.test.name }}</td>
+                        <td style="background-color: 
+                            {% if result.final_status == 'OK' %}lightgreen
+                            {% elif result.final_status in 'TLE MLE' %}yellow
+                            {% elif result.final_status == 'WA' %}orange
+                            {% elif result.final_status == 'ERR' %}red
+                            {% endif %};">{{ result.final_status }}</td>
+                    </tr>
+                    {% endfor %}
+                {% endfor %}
+                {% for result in ungrouped_results %}
+                <tr>
+                    <td>N/A</td>
+                    <td>{{ result.test.name }}</td>
+                    <td style="background-color: 
+                        {% if result.final_status == 'OK' %}lightgreen
+                        {% elif result.final_status in 'TLE MLE' %}yellow
+                        {% elif result.final_status == 'WA' %}orange
+                        {% elif result.final_status == 'ERR' %}red
+                        {% endif %};">{{ result.final_status }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <h3><strong>Suma punktów:</strong> {{ solution.final_points }}</h3>
+    {% endif %}
+</div>
+{% endblock %}

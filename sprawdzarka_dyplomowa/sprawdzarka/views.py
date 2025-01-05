@@ -14,7 +14,7 @@ from django.views.decorators.http import require_POST
 from .forms import LoginForm, RegisterForm, LectureForm, TaskForm, EditTaskForm, TestCreateForm, ContestForm, SendSolutionForm
 from .decorators import not_logged_in_required, logged_in_required, user_not_teacher, user_not_admin
 from django.contrib.auth.decorators import login_required
-from .models import User, Contest, Lecture, Task, Test, TestGroup, ContestLecture, ContestTask, ContestSigned, Solution
+from .models import User, Contest, Lecture, Task, Test, TestGroup, ContestLecture, ContestTask, ContestSigned, Solution, SolutionTestResult
 from django.db.models import Max
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
@@ -22,7 +22,7 @@ from django.utils import timezone
 from django.views import View
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.db.models import Sum, Q
+from django.db.models import Sum, Q, Prefetch, Max, F
 from .tasks import execute_cpp, execute_java, execute_cs
 from datetime import datetime
 from django.utils.timezone import now
@@ -1009,5 +1009,115 @@ def send_solution_view(request):
             execute_cs.delay(solution.id)
 
         return redirect('user_solutions')
+
+
+@login_required
+def solution_raport_view(request, id):
+    solution = get_object_or_404(Solution, pk=id)
+
+    # Check user permissions
+    user = request.user
+    if not (
+        user == solution.author or 
+        user == solution.contest_task.contest.teacher or 
+        user.role == 'admin'
+    ):
+        return redirect('home')
+
+    # Prepare data for rendering
+    if solution.status != 'done':
+        context = {
+            'solution': solution,
+            'is_done': False,
+        }
+        return render(request, 'solution_raport.html', context)
+
+    # Fetch test results grouped by TestGroup
+    grouped_results = {}
+    ungrouped_results = []
+
+    results = SolutionTestResult.objects.filter(solution=solution).select_related(
+        'test', 'test__group'
+    )
+
+    for result in results:
+        group_name = result.test.group.name if result.test.group else 'N/A'
+        if group_name not in grouped_results:
+            grouped_results[group_name] = []
+        grouped_results[group_name].append(result)
+
+    context = {
+        'solution': solution,
+        'is_done': True,
+        'grouped_results': grouped_results,
+        'ungrouped_results': ungrouped_results,
+    }
+    return render(request, 'solution_raport.html', context)
+
+
+@login_required
+def contest_ranking_view(request):
+    user = request.user
+
+    # Pobranie wybranego konkursu
+    contest_signups = ContestSigned.objects.filter(user=user, is_selected=True)
+    if contest_signups.count() != 1:
+        return render(request, 'contest_ranking.html', {
+            'error': 'Nieprawidłowa liczba wybranych konkursów. Skontaktuj się z administratorem.'
+        })
+
+    contest = contest_signups.first().contest
+    contest_tasks = ContestTask.objects.filter(contest=contest)
+    tasks_data = {contest_task.task.id: contest_task.task.special_id for contest_task in contest_tasks}
+
+    # Ranking zamrożony - warunki
+    frozen_ranking = contest.frozen_ranking
+    extra_filter = Q()
+    if frozen_ranking and not (user.role == 'admin' or contest.teacher == user):
+        extra_filter = Q(send_date__lt=frozen_ranking)
+
+    # Pobieranie danych do rankingu
+    rankings = []
+    for signup in ContestSigned.objects.filter(contest=contest):
+        person = signup.user
+        solutions = []
+        total_points = 0
+
+        for task_id in tasks_data.keys():
+            best_solution = Solution.objects.filter(
+                contest_task__contest=contest,
+                contest_task__task_id=task_id,
+                author=person,
+                status='done'
+            ).filter(extra_filter).annotate(
+                points=F('final_points')
+            ).order_by('-points', '-send_date').first()
+
+            points = best_solution.final_points if best_solution and best_solution.final_points else 0
+            solutions.append(points)
+            total_points += points
+
+        if total_points > 0:  # Pomijamy osoby bez punktów
+            rankings.append({
+                'user': person,
+                'solutions': solutions,
+                'total_points': total_points
+            })
+
+    # Sortowanie rankingu
+    rankings = sorted(rankings, key=lambda x: -x['total_points'])
+    rank = 1
+    last_points = None
+    for i, entry in enumerate(rankings):
+        if last_points != entry['total_points']:
+            rank = i + 1
+            last_points = entry['total_points']
+        entry['rank'] = rank
+
+    return render(request, 'contest_ranking.html', {
+        'contest': contest,
+        'tasks': tasks_data,
+        'rankings': rankings,
+    })
 
 

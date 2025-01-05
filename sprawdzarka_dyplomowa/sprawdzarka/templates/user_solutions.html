@@ -22,7 +22,7 @@
                 {% for solution in solutions %}
                     <tr>
                         <!-- Zadanie -->
-                        <td><a href="#" class="text-decoration-none">{{ solution.contest_task.task.name }}</a></td>
+                        <td><a href="{% url 'solution_raport' id=solution.id %}" class="text-decoration-none">{{ solution.contest_task.task.name }}</a></td>
 
                         <!-- Data -->
                         <td>{{ solution.send_date|date:"Y.m.d::H:i:s" }}</td>

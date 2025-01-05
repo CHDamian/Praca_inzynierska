@@ -33,4 +33,6 @@ urlpatterns = [
     path('task_list/', views.task_list, name='task_list'),
     path('user-solutions/', views.UserSolutionsView.as_view(), name='user_solutions'),
     path('send_solution/', views.send_solution_view, name='send_solution'),
+    path('solution_raport/<int:id>/', views.solution_raport_view, name='solution_raport'),
+    path('ranking/', views.contest_ranking_view, name='contest_ranking'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
