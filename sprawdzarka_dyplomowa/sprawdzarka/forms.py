@@ -1,7 +1,7 @@
 # forms.py
 from django import forms
 from django.contrib.auth import authenticate
-from .models import Lecture, Task, TestGroup, Test, Contest, Solution
+from .models import Lecture, Task, TestGroup, Test, Contest, Solution, Question
 from django.core.exceptions import ValidationError
 import re
 
@@ -217,3 +217,27 @@ class SendSolutionForm(forms.ModelForm):
     class Meta:
         model = Solution
         fields = ['contest_task', 'lang', 'solution_file']
+
+
+class QuestionForm(forms.ModelForm):
+    class Meta:
+        model = Question
+        fields = ['task', 'title', 'question']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control', 'required': True}),
+            'question': forms.Textarea(attrs={'class': 'form-control', 'rows': 5}),
+            'task': forms.Select(attrs={'class': 'form-control'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['task'].required = False
+        self.fields['task'].empty_label = '-/-'
+
+
+class AnswerForm(forms.Form):
+    answer = forms.CharField(
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 5}),
+        label="Odpowiedź",
+        required=True
+    )

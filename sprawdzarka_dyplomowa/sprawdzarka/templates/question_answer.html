@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center">Pytanie nr. {{ question.id }}</h1>
+
+    <div class="card mt-4">
+        <div class="card-body">
+            <p><strong>Data pytania:</strong> {{ question.date_posted|date:"Y-m-d H:i" }}</p>
+            <p><strong>Tytuł:</strong> {{ question.title }}</p>
+            <p><strong>Treść:</strong> {{ question.question }}</p>
+
+            <hr>
+
+            {% if question.answer %}
+                <p><strong>Odpowiedział:</strong> {{ question.user_answered.first_name }} {{ question.user_answered.last_name }}</p>
+                <p><strong>Odpowiedź:</strong> {{ question.answer }}</p>
+            {% else %}
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        {{ form.as_p }}
+                    </div>
+                    <button type="submit" class="btn btn-primary">Odpowiedz</button>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

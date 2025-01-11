@@ -140,7 +140,7 @@ class Test(models.Model):
 
 class Solution(models.Model):
     LANG_CHOICES = [('C/C++', 'C/C++'), ('Java', 'Java'), ('C#', 'C#')]
-    STATUS_CHOICES = [('waiting', 'Waiting'), ('testing', 'Testing'), ('done', 'Done')]
+    STATUS_CHOICES = [('waiting', 'Waiting'), ('testing', 'Testing'), ('done', 'Done'), ('error', 'Error')]
     contest_task = models.ForeignKey(ContestTask, on_delete=models.CASCADE)
     author = models.ForeignKey(User, on_delete=models.CASCADE)
     send_date = models.DateTimeField()
@@ -184,6 +184,7 @@ class Question(models.Model):
     contest = models.ForeignKey(Contest, on_delete=models.CASCADE)
     date_posted = models.DateTimeField()
     task = models.ForeignKey(Task, on_delete=models.SET_NULL, null=True, blank=True)
+    title = models.CharField(max_length=128, null=True, blank=True)
     question = models.TextField()
     answer = models.TextField(null=True, blank=True)
     user_answered = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='answers')

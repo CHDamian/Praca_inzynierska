@@ -11,21 +11,22 @@ from django.contrib import messages
 from django.views.generic import ListView
 from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_POST
-from .forms import LoginForm, RegisterForm, LectureForm, TaskForm, EditTaskForm, TestCreateForm, ContestForm, SendSolutionForm
+from .forms import LoginForm, RegisterForm, LectureForm, TaskForm, EditTaskForm, TestCreateForm, ContestForm, SendSolutionForm, QuestionForm, AnswerForm
 from .decorators import not_logged_in_required, logged_in_required, user_not_teacher, user_not_admin
 from django.contrib.auth.decorators import login_required
-from .models import User, Contest, Lecture, Task, Test, TestGroup, ContestLecture, ContestTask, ContestSigned, Solution, SolutionTestResult
+from .models import User, Contest, Lecture, Task, Test, TestGroup, ContestLecture, ContestTask, ContestSigned, Solution, SolutionTestResult, Question
 from django.db.models import Max
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.utils import timezone
 from django.views import View
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
-from django.db.models import Sum, Q, Prefetch, Max, F
+from django.db.models import Sum, Q, Prefetch, Max, F, Count
 from .tasks import execute_cpp, execute_java, execute_cs
 from datetime import datetime
 from django.utils.timezone import now
+from django.core.paginator import Paginator
 
 @not_logged_in_required
 def login_view(request):
@@ -51,7 +52,7 @@ def logout_view(request):
 def home_view(request):
     return render(request, 'home.html', {'first_name': request.user.first_name, 'last_name': request.user.last_name})
 
-
+@not_logged_in_required
 def register_view(request):
     if request.method == 'POST':
         form = RegisterForm(request.POST)
@@ -972,6 +973,19 @@ def send_solution_view(request):
         # Prepare solution folder and file path
         try:
             contest_task = form.cleaned_data['contest_task']
+
+            time_now = datetime.now()
+        
+            if contest_task.contest.start_date and time_now.date() < contest_task.contest.start_date:
+                context['form'] = form
+                context['error_message'] = "Kurs się jeszcze nie rozpoczął!"
+                return render(request, 'send_solution.html', context)
+            
+            if contest_task.contest.end_date and time_now.date() > contest_task.contest.end_date:
+                context['form'] = form
+                context['error_message'] = "Kurs się już zakończył!"
+                return render(request, 'send_solution.html', context)
+
             contest_name = contest_task.contest.name
             task_name = contest_task.task.name
             timestamp = datetime.now().strftime("%Y_%m_%d_%H_%M_%S_%f")
@@ -1120,4 +1134,143 @@ def contest_ranking_view(request):
         'rankings': rankings,
     })
 
+
+@login_required
+def question_user_view(request):
+    # Sprawdzenie aktualnie wybranego kursu
+    selected_contests = ContestSigned.objects.filter(user=request.user, is_selected=True)
+    if selected_contests.count() != 1:
+        return render(request, 'question_user.html', {
+            'error': "Proszę wybrać jeden aktualny kurs."
+        })
+    
+    selected_contest = selected_contests.first().contest
+
+    # Formularz
+    if request.method == 'POST':
+        form = QuestionForm(request.POST)
+        if form.is_valid():
+            question = form.save(commit=False)
+            question.user = request.user
+            question.contest = selected_contest
+            question.date_posted = now()
+            question.save()
+            return redirect('question_user_view')
+    else:
+        form = QuestionForm()
+        # Ogranicz zadania w formularzu do aktualnego kursu
+        form.fields['task'].queryset = Task.objects.filter(
+            contesttask__contest=selected_contest
+        )
+
+    # Pobranie pytań usera dla aktualnego kursu
+    questions = Question.objects.filter(user=request.user, contest=selected_contest).order_by('-date_posted')
+    paginator = Paginator(questions, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'question_user.html', {
+        'form': form,
+        'page_obj': page_obj,
+        'contest': selected_contest,
+    })
+
+@login_required
+def question_content_view(request, question_id):
+    # Pobranie pytania na podstawie ID
+    try:
+        question = Question.objects.get(id=question_id)
+    except Question.DoesNotExist:
+        raise Http404("Pytanie nie istnieje.")
+
+    # Sprawdzenie uprawnień
+    if not (
+        question.user == request.user or
+        question.contest.teacher == request.user or
+        request.user.role == 'admin'
+    ):
+        return redirect('home')
+
+    # Renderowanie szczegółów pytania
+    return render(request, 'question_content.html', {
+        'question': question,
+    })
+
+
+@login_required
+def question_teacher_view(request):
+    # Pobranie odpowiednich kursów w zależności od roli użytkownika
+    if request.user.role == 'admin':
+        contests = Contest.objects.annotate(
+            unanswered_count=Count('question', filter=Q(question__answer__isnull=True))
+        )
+    else:
+        contests = Contest.objects.filter(teacher=request.user).annotate(
+            unanswered_count=Count('question', filter=Q(question__answer__isnull=True))
+        )
+
+    return render(request, 'question_teacher.html', {
+        'contests': contests,
+    })
+
+@login_required
+def question_contest_view(request, contest_id):
+    # Pobranie kursu na podstawie ID
+    try:
+        contest = Contest.objects.get(id=contest_id)
+    except Contest.DoesNotExist:
+        raise Http404("Kurs nie istnieje.")
+
+    # Sprawdzenie uprawnień
+    if not (request.user == contest.teacher or request.user.role == 'admin'):
+        return redirect('home')
+
+    # Pobranie wszystkich pytań do kursu, posortowanych od najnowszego
+    questions = Question.objects.filter(contest=contest).order_by('-date_posted')
+
+    return render(request, 'question_contest.html', {
+        'contest': contest,
+        'questions': questions,
+    })
+
+@login_required
+def question_answer_view(request, question_id):
+    # Pobranie pytania na podstawie ID
+    try:
+        question = Question.objects.get(id=question_id)
+    except Question.DoesNotExist:
+        raise Http404("Pytanie nie istnieje.")
+
+    # Sprawdzenie uprawnień
+    if not (
+        request.user.role == 'admin' or 
+        request.user == question.contest.teacher
+    ):
+        return redirect('home')
+
+    # Sprawdzenie, czy pytanie zostało już odpowiedziane
+    if question.answer:
+        return redirect('question_content_view', question_id=question.id)
+
+    if request.method == 'POST':
+        form = AnswerForm(request.POST)
+        if form.is_valid():
+            # Sprawdzenie ponownie, czy pytanie zostało odpowiedziane
+            question.refresh_from_db()
+            if question.answer:
+                return redirect('question_content_view', question_id=question.id)
+
+            # Zapis odpowiedzi
+            question.answer = form.cleaned_data['answer']
+            question.user_answered = request.user
+            question.save()
+
+            return redirect('question_content_view', question_id=question.id)
+    else:
+        form = AnswerForm()
+
+    return render(request, 'question_answer.html', {
+        'question': question,
+        'form': form,
+    })
 

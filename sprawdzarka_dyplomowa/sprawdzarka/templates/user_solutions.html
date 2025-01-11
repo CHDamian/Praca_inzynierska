@@ -35,6 +35,8 @@
                                 orange;
                             {% elif solution.status == 'done' %}
                                 green;
+                            {% elif solution.status == 'error' %}
+                                red;
                             {% endif %}">
                             {{ solution.get_status_display }}
                         </td>

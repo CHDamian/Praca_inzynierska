@@ -34,8 +34,11 @@
         <a class="navbar-brand" href="/">Sprawdzarka</a>
         <div class="ml-auto">
             <a class="btn btn-outline-light mr-2" href="/">Home</a>
-            <a class="btn btn-outline-light mr-2" href="/register">Rejestracja</a>
+            {% if user.is_authenticated %}
             <a class="btn btn-outline-light" href="/logout">Wyloguj</a>
+            {% else %}
+            <a class="btn btn-outline-light mr-2" href="/register">Rejestracja</a>
+            {% endif %}
         </div>
     </nav>
 
@@ -45,7 +48,9 @@
             <nav class="col-md-2 d-none d-md-block bg-light sidebar">
                 <div class="sidebar-sticky pt-3">
                     <ul class="nav flex-column">
+                        {% if user.is_authenticated %}
                         <!-- Dropdown dla Admin -->
+                        {% if user.role == 'admin' %}
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button">
                                 Admin
@@ -54,8 +59,10 @@
                                 <a class="dropdown-item" href="#">Użytkownicy</a>
                             </div>
                         </li>
+                        {% endif %}
 
                         <!-- Dropdown dla Nauczyciel -->
+                        {% if user.role == 'admin' or user.role == 'teacher' %}
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="teacherDropdown" role="button">
                                 Nauczyciel
@@ -64,9 +71,10 @@
                                 <a class="dropdown-item" href="/contest_manager">Kursy</a>
                                 <a class="dropdown-item" href="/lecture_manager">Wykłady</a>
                                 <a class="dropdown-item" href="/task_manager">Zadania</a>
-                                <a class="dropdown-item" href="#">Pytania</a>
+                                <a class="dropdown-item" href="/questions/teacher">Pytania</a>
                             </div>
                         </li>
+                        {% endif %}
 
                         <li class="nav-item">
                             <a class="nav-link" href="/contests">Kursy</a>
@@ -87,11 +95,9 @@
                             <a class="nav-link" href="/ranking">Ranking</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="#">Pytania</a>
+                            <a class="nav-link" href="/questions/user">Pytania</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#">Forum</a>
-                        </li>
+                        {% endif %}
                     </ul>
                 </div>
             </nav>
