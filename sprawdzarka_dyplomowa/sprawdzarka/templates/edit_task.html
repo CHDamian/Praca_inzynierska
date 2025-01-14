@@ -12,16 +12,61 @@
         {% endfor %}
     {% endif %}
 
-    <!-- Informacje ogólne -->
-    <div class="mb-4">
-        <h3>Informacje ogólne</h3>
-        <form method="post" enctype="multipart/form-data">
-            {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit" class="btn btn-primary">Zapisz</button>
-        </form>
-        <button class="btn btn-danger mt-3">Usuń zadanie</button>
-    </div>
+<!-- Informacje ogólne -->
+<div class="mb-4">
+    <h3>Informacje ogólne</h3>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <!-- Pole 'name' -->
+        <div class="mb-3">
+            {{ form.name.label_tag }}
+            {{ form.name }}
+            {% if form.name.errors %}
+                <div class="text-danger">{{ form.name.errors }}</div>
+            {% endif %}
+        </div>
+        
+        <!-- Pole 'special_id' -->
+        <div class="mb-3">
+            {{ form.special_id.label_tag }}
+            {{ form.special_id }}
+            {% if form.special_id.errors %}
+                <div class="text-danger">{{ form.special_id.errors }}</div>
+            {% endif %}
+        </div>
+        
+        <!-- Pole 'time_limit' -->
+        <div class="mb-3">
+            {{ form.time_limit.label_tag }}
+            {{ form.time_limit }}
+            {% if form.time_limit.errors %}
+                <div class="text-danger">{{ form.time_limit.errors }}</div>
+            {% endif %}
+        </div>
+        
+        <!-- Pole 'memory_limit' -->
+        <div class="mb-3">
+            {{ form.memory_limit.label_tag }}
+            {{ form.memory_limit }}
+            {% if form.memory_limit.errors %}
+                <div class="text-danger">{{ form.memory_limit.errors }}</div>
+            {% endif %}
+        </div>
+        
+        <!-- Pole 'is_public' z poprawną strukturą -->
+        <div class="form-check mb-3">
+            {{ form.is_public }}
+            <label class="form-check-label" for="id_is_public">{{ form.is_public.label }}</label>
+            {% if form.is_public.errors %}
+                <div class="text-danger">{{ form.is_public.errors }}</div>
+            {% endif %}
+        </div>
+        
+        <!-- Przycisk zapisu -->
+        <button type="submit" class="btn btn-primary">Zapisz</button>
+    </form>
+</div>
 
     <!-- Testy -->
     <div class="mt-4">
@@ -71,8 +116,8 @@
                     <tr data-test-id="{{ test.id }}">
                         <td>{{ test.name }}</td>
                         <td>
-                            <a href="{{ task.content_path }}\\tests\\{{ test.name }}\\{{ test.in_file }}" class="btn btn-sm btn-secondary" download>IN</a>
-                            <a href="{{ task.content_path }}\\tests\\{{ test.name }}\\{{ test.out_file }}" class="btn btn-sm btn-secondary" download>OUT</a>
+                            <a href="{% url 'download_file' test.id 1 %}" class="btn btn-sm btn-secondary" download>IN</a>
+                            <a href="{% url 'download_file' test.id 2 %}" class="btn btn-sm btn-secondary" download>OUT</a>
                         </td>
                         <td>
                             <select class="form-select group-select">
@@ -145,6 +190,18 @@
 <script>
     const TASK_ID = {{ task.id }};
 
+    // Funkcja do aktualizacji list rozwijanych grup
+    function updateGroupDropdowns(newGroup) {
+        const groupSelects = document.querySelectorAll('.group-select');
+        groupSelects.forEach((select) => {
+            const option = document.createElement('option');
+            option.value = newGroup.id;
+            option.textContent = newGroup.name;
+            select.appendChild(option);
+        });
+    }
+
+
     //Dodawanie testu
     document.getElementById('add-test-form').addEventListener('submit', function (e) {
         e.preventDefault();
@@ -164,16 +221,24 @@
                 if (data.status === 'success') {
                     alert(data.message);
 
-                    // Dodaj nowy rekord do tabeli
+                    // Dodaj nowy test do listy
                     const table = document.querySelector('#test-list');
                     const newRow = document.createElement('tr');
+                    newRow.dataset.testId = data.test.id;
                     newRow.innerHTML = `
                         <td>${data.test.name}</td>
                         <td>
-                            <a href="${data.test.in_file}" class="btn btn-sm btn-secondary" download>IN</a>
-                            <a href="${data.test.out_file}" class="btn btn-sm btn-secondary" download>OUT</a>
+                            <a href="${data.test.in_file_url}" class="btn btn-sm btn-secondary" download>IN</a>
+                            <a href="${data.test.out_file_url}" class="btn btn-sm btn-secondary" download>OUT</a>
                         </td>
-                        <td>${data.test.group}</td>
+                        <td>
+                            <select class="form-select group-select">
+                                <option value="" ${!data.test.group_id ? 'selected' : ''}>Brak</option>
+                                {% for group in test_groups %}
+                                <option value="{{ group.id }}" ${data.test.group_id == '{{ group.id }}' ? 'selected' : ''}>{{ group.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
                         <td>
                             <button class="btn btn-sm btn-primary edit-test-btn">Edytuj</button>
                             <button class="btn btn-sm btn-danger delete-test-btn">Usuń</button>
@@ -189,6 +254,7 @@
             })
             .catch((error) => console.error('Błąd:', error));
     });
+
 
 
     // Edycja testu
@@ -267,6 +333,10 @@
 
                     // Wyczyść formularz
                     createGroupForm.reset();
+
+                    // Zaktualizuj listy rozwijane grup w części 2
+                    updateGroupDropdowns(data.group);
+
                     alert('Grupa została pomyślnie dodana.');
                 }
             })
@@ -276,6 +346,7 @@
             });
         });
     });
+
 
     // Edycja grupy
     document.addEventListener('DOMContentLoaded', () => {
@@ -321,5 +392,106 @@
             }
         });
     });
+
+    // Usuwanie grupy
+    document.addEventListener('DOMContentLoaded', () => {
+        const groupList = document.getElementById('group-list');
+
+        groupList.addEventListener('click', (event) => {
+            if (event.target.classList.contains('delete-group-btn')) {
+                const row = event.target.closest('tr');
+                const groupId = row.dataset.groupId;
+
+                // Potwierdzenie usunięcia
+                if (!confirm('Czy na pewno chcesz usunąć tę grupę? Operacja jest nieodwracalna.')) {
+                    return;
+                }
+
+                // Wysyłanie żądania AJAX do serwera
+                fetch(`/delete-group/${groupId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}',
+                    },
+                })
+                    .then((response) => response.json())
+                    .then((data) => {
+                        if (data.status === 'success') {
+                            alert('Grupa została pomyślnie usunięta.');
+
+                            // Usuń wiersz z listy grup
+                            row.remove();
+
+                            // Zaktualizuj wszystkie listy rozwijane w części 2
+                            const groupSelects = document.querySelectorAll('.group-select');
+                            groupSelects.forEach((select) => {
+                                const option = select.querySelector(`option[value="${groupId}"]`);
+                                if (option) {
+                                    option.remove();
+                                }
+                            });
+
+                            // Zaktualizuj grupy w istniejących testach
+                            const testRows = document.querySelectorAll('#test-list tr');
+                            testRows.forEach((testRow) => {
+                                const groupSelect = testRow.querySelector('.group-select');
+                                if (groupSelect.value === groupId) {
+                                    groupSelect.value = ''; // Ustaw na "Brak"
+                                }
+                            });
+                        } else {
+                            alert('Wystąpił błąd: ' + data.message);
+                        }
+                    })
+                    .catch((error) => {
+                        alert('Wystąpił błąd podczas usuwania grupy.');
+                        console.error(error);
+                    });
+            }
+        });
+    });
+
+    // Usuwanie testu
+    document.addEventListener('DOMContentLoaded', () => {
+        const testList = document.getElementById('test-list');
+
+        testList.addEventListener('click', (event) => {
+            if (event.target.classList.contains('delete-test-btn')) {
+                const row = event.target.closest('tr');
+                const testId = row.dataset.testId;
+
+                // Potwierdzenie usunięcia
+                if (!confirm('Czy na pewno chcesz usunąć ten test? Operacja jest nieodwracalna.')) {
+                    return;
+                }
+
+                // Wysyłanie żądania AJAX do serwera
+                fetch(`/delete-test/${testId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}',
+                    },
+                })
+                    .then((response) => response.json())
+                    .then((data) => {
+                        if (data.status === 'success') {
+                            alert('Test został pomyślnie usunięty.');
+
+                            // Usuń wiersz z tabeli testów
+                            row.remove();
+                        } else {
+                            alert('Wystąpił błąd: ' + data.message);
+                        }
+                    })
+                    .catch((error) => {
+                        alert('Wystąpił błąd podczas usuwania testu.');
+                        console.error(error);
+                    });
+            }
+        });
+    });
+
 </script>
 {% endblock %}

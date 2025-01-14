@@ -20,13 +20,15 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.utils import timezone
 from django.views import View
-from django.http import JsonResponse, Http404
+from django.http import JsonResponse, Http404, FileResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Sum, Q, Prefetch, Max, F, Count
 from .tasks import execute_cpp, execute_java, execute_cs
 from datetime import datetime
 from django.utils.timezone import now
 from django.core.paginator import Paginator
+from django.db import transaction
+from django.core.serializers import serialize
 
 @not_logged_in_required
 def login_view(request):
@@ -445,7 +447,7 @@ def create_test_view(request):
                     f.write(chunk)
 
             # Tworzenie rekordu w bazie
-            Test.objects.create(
+            new_test = Test.objects.create(
                 task=task,
                 name=name,
                 group=group,
@@ -453,7 +455,17 @@ def create_test_view(request):
                 out_file=out_file.name,
             )
 
-            return JsonResponse({'status': 'success', 'message': 'Nowy test został dodany.'})
+            # Przygotowanie danych do odpowiedzi
+            response_data = {
+                'id': new_test.id,
+                'name': new_test.name,
+                'in_file_url': f"/media/{new_test.in_file}",
+                'out_file_url': f"/media/{new_test.out_file}",
+                'group_id': new_test.group.id if new_test.group else None,
+                'group_name': new_test.group.name if new_test.group else 'Brak',
+            }
+
+            return JsonResponse({'status': 'success', 'test': response_data, 'message': 'Nowy test został dodany.'})
         else:
             return JsonResponse({'status': 'error', 'message': form.errors.as_json()}, status=400)
 
@@ -769,6 +781,21 @@ class ContestListView(ListView):
         # Pobieranie dostępnych kursów, na które użytkownik nie jest zapisany
         context['available_contests'] = Contest.objects.exclude(id__in=user_contests)
         return context
+    
+@login_required
+def select_contest(request, contest_id):
+    # Pobierz rekord ContestSigned dla zalogowanego użytkownika i wybranego konkursu
+    contest_signup = get_object_or_404(ContestSigned, contest_id=contest_id, user=request.user)
+
+    # Zresetuj is_selected dla wszystkich kursów użytkownika
+    ContestSigned.objects.filter(user=request.user).update(is_selected=False)
+
+    # Ustaw is_selected na true dla wybranego kursu
+    contest_signup.is_selected = True
+    contest_signup.save()
+
+    # Odśwież stronę
+    return redirect('contest_list_view')
     
 @login_required
 def sign_to_contest(request, contest_id):
@@ -1273,4 +1300,61 @@ def question_answer_view(request, question_id):
         'question': question,
         'form': form,
     })
+
+@user_not_teacher
+def download_file(request, test_id, in_out):
+    try:
+        test = Test.objects.get(id=test_id)
+    except Test.DoesNotExist:
+        raise Http404("File not found")
+    
+    file_path = os.path.join(test.task.content_path, 'tests', test.name)
+
+    if in_out == 1:
+        file_path = os.path.join(file_path, test.in_file)
+        filename = test.in_file
+    elif in_out == 2:
+        file_path = os.path.join(file_path, test.out_file)
+        filename = test.out_file
+    else:
+        raise Http404("File not found")
+    
+    # Otwieramy plik w trybie binarnym
+    response = FileResponse(open(file_path, 'rb'))
+    
+    # Ustawiamy nagłówki Content-Disposition, aby wymusić pobieranie
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+def delete_group(request, group_id):
+    if request.method == "POST":
+        try:
+            with transaction.atomic():
+                group = get_object_or_404(TestGroup, id=group_id)
+                
+                # Zmiana grupy na NULL dla powiązanych testów
+                Test.objects.filter(group=group).update(group=None)
+                
+                # Usunięcie grupy
+                group.delete()
+            
+            return JsonResponse({"status": "success", "message": "Grupa została pomyślnie usunięta."})
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": f"Wystąpił błąd: {str(e)}"})
+
+
+def delete_test(request, test_id):
+    if request.method == "POST":
+        try:
+            # Pobierz test
+            test = get_object_or_404(Test, id=test_id)
+            
+            # Usuń test
+            test.delete()
+            
+            return JsonResponse({"status": "success", "message": "Test został pomyślnie usunięty."})
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": f"Wystąpił błąd: {str(e)}"})
+        
 

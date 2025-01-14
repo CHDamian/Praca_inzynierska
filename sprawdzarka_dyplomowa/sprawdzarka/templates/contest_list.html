@@ -23,8 +23,8 @@
                 <td>{{ signup.contest.start_date|default:"Brak" }}</td>
                 <td>{{ signup.contest.end_date|default:"Brak" }}</td>
                 <td>
-                    <button class="btn btn-primary btn-sm">Wybierz</button>
-                </td>
+                    <a href="{% url 'select_contest' signup.contest.id %}" class="btn btn-primary btn-sm">Wybierz</a>
+                </td>                
             </tr>
             {% empty %}
             <tr>

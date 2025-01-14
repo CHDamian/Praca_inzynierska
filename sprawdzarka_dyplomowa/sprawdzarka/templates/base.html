@@ -49,17 +49,6 @@
                 <div class="sidebar-sticky pt-3">
                     <ul class="nav flex-column">
                         {% if user.is_authenticated %}
-                        <!-- Dropdown dla Admin -->
-                        {% if user.role == 'admin' %}
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button">
-                                Admin
-                            </a>
-                            <div class="dropdown-menu" aria-labelledby="adminDropdown">
-                                <a class="dropdown-item" href="#">Użytkownicy</a>
-                            </div>
-                        </li>
-                        {% endif %}
 
                         <!-- Dropdown dla Nauczyciel -->
                         {% if user.role == 'admin' or user.role == 'teacher' %}

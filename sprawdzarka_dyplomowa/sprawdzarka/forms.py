@@ -1,7 +1,7 @@
 # forms.py
 from django import forms
 from django.contrib.auth import authenticate
-from .models import Lecture, Task, TestGroup, Test, Contest, Solution, Question
+from .models import Lecture, Task, TestGroup, Test, Contest, Solution, Question, ContestTask
 from django.core.exceptions import ValidationError
 import re
 
@@ -100,11 +100,22 @@ class TaskForm(forms.ModelForm):
 
 
 class EditTaskForm(forms.ModelForm):
-    file = forms.FileField(required=False, widget=forms.ClearableFileInput(attrs={'class': 'form-control'}))
+    file = forms.FileField(
+        required=False, 
+        widget=forms.ClearableFileInput(attrs={'class': 'form-control'}),
+        label='Plik'  # Opcjonalnie, jeśli chcesz ustawić etykietę dla pliku
+    )
 
     class Meta:
         model = Task
         fields = ['name', 'special_id', 'time_limit', 'memory_limit', 'is_public']
+        labels = {
+            'name': 'Nazwa',
+            'special_id': 'Identyfikator',
+            'time_limit': 'Limit czasu',
+            'memory_limit': 'Limit pamięci',
+            'is_public': 'Publiczne?',
+        }
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'minlength': 3}),
             'special_id': forms.TextInput(attrs={'class': 'form-control', 'minlength': 3}),
@@ -206,17 +217,24 @@ class SendSolutionForm(forms.ModelForm):
         required=True,
         widget=forms.ClearableFileInput(attrs={'accept': '.c,.cpp,.cc,.java,.cs'})
     )
+    contest_task = forms.ModelChoiceField(
+        queryset=ContestTask.objects.none(),
+        label="Zadanie",
+        widget=forms.Select
+    )
 
     def __init__(self, *args, **kwargs):
         tasks = kwargs.pop('tasks', [])
         super().__init__(*args, **kwargs)
         self.fields['contest_task'].queryset = tasks
-        self.fields['contest_task'].label = "Zadanie"
+        # Ustawianie wyświetlania nazw `Task.name` zamiast `ContestTask`
+        self.fields['contest_task'].label_from_instance = lambda obj: obj.task.name
         self.fields['lang'].label = "Język"
 
     class Meta:
         model = Solution
         fields = ['contest_task', 'lang', 'solution_file']
+
 
 
 class QuestionForm(forms.ModelForm):

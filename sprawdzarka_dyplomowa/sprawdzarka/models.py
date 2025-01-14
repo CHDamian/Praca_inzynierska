@@ -127,7 +127,7 @@ class TestGroup(models.Model):
 class Test(models.Model):
     name = models.CharField(max_length=255)
     task = models.ForeignKey(Task, on_delete=models.CASCADE, related_name='tests')
-    group = models.ForeignKey(TestGroup, on_delete=models.CASCADE, related_name='tests', null=True, blank=True)
+    group = models.ForeignKey(TestGroup, on_delete=models.SET_NULL, related_name='tests', null=True, blank=True)
     in_file = models.TextField()
     out_file = models.TextField()
 
