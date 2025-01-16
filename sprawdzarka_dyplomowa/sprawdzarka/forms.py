@@ -82,6 +82,18 @@ class LectureForm(forms.ModelForm):
             'file': forms.FileInput(attrs={'class': 'form-control'}),
         }
 
+class EditLectureForm(forms.ModelForm):
+    file = forms.FileField(required=False)  # Pole do załączania pliku jest opcjonalne
+
+    class Meta:
+        model = Lecture
+        fields = ['name', 'is_public', 'file']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nazwa wykładu'}),
+            'is_public': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'file': forms.FileInput(attrs={'class': 'form-control'}),
+        }
+
 
 class TaskForm(forms.ModelForm):
     file = forms.FileField(required=True)
@@ -202,12 +214,11 @@ class TestCreateForm(forms.ModelForm):
 class ContestForm(forms.ModelForm):
     class Meta:
         model = Contest
-        fields = ['name', 'start_date', 'end_date', 'send_limit', 'password']
+        fields = ['name', 'start_date', 'end_date', 'password']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nazwa konkursu'}),
             'start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'end_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'send_limit': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
             'password': forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Hasło (opcjonalne)'}),
         }
 

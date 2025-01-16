@@ -16,8 +16,23 @@
         {% csrf_token %}
         {{ form.as_p }}
         <button type="submit" class="btn btn-primary">Zapisz zmiany</button>
-        <a href="#" class="btn btn-danger">Usuń</a>
     </form>
+
+    <div class="mt-5">
+        <h3>Ranking</h3>
+        {% if contest.frozen_ranking %}
+            <p>Data zamrożenia rankingu: {{ contest.frozen_ranking }}</p>
+            <form method="POST">
+                {% csrf_token %}
+                <button type="submit" name="unfreeze_ranking" class="btn btn-danger">Odmroź ranking</button>
+            </form>
+        {% else %}
+            <form method="POST">
+                {% csrf_token %}
+                <button type="submit" name="freeze_ranking" class="btn btn-warning">Zamroź ranking!</button>
+            </form>
+        {% endif %}
+    </div>
 
     <div class="mt-5">
         <h3>Opcje</h3>

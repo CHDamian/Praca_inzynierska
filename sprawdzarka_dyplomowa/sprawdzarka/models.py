@@ -26,7 +26,7 @@ class Contest(models.Model):
     end_date = models.DateField(null=True, blank=True)
     send_limit = models.IntegerField(null=True, blank=True)
     password = models.CharField(max_length=128, null=True, blank=True)
-    frozen_ranking = models.DateField(null=True, blank=True)
+    frozen_ranking = models.DateTimeField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
         if self.password and not self.password.startswith('pbkdf2_'):

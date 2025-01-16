@@ -4,6 +4,12 @@
 <div class="container mt-4">
     <h2>Centrum Zarządzania Zadaniami</h2>
 
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
     <!-- Przycisk "Dodaj Zadanie" -->
     <div class="mb-3">
         <a href="/add_task" class="btn btn-primary">Dodaj Zadanie</a>

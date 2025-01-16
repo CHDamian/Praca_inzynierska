@@ -12,6 +12,7 @@ urlpatterns = [
     path('lecture_manager/', views.lecture_manager_view.as_view(), name='lecture_manager_view'),
     path('task_manager/', views.task_manager_view.as_view(), name='task_manager_view'),
     path('add_lecture/', views.add_lecture_view.as_view(), name='add_lecture'),
+    path('edit_lecture/<int:lecture_id>/', views.edit_lecture_view.as_view(), name='edit_lecture'),
     path('pdf_page/<str:pdf_path>/', views.pdf_page, name='pdf_page'),
     path('add_task/', views.add_task_view.as_view(), name='add_task'),
     path('edit_task/<int:task_id>/', views.edit_task_view, name='edit_task'),

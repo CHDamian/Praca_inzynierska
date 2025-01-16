@@ -11,7 +11,7 @@ from django.contrib import messages
 from django.views.generic import ListView
 from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_POST
-from .forms import LoginForm, RegisterForm, LectureForm, TaskForm, EditTaskForm, TestCreateForm, ContestForm, SendSolutionForm, QuestionForm, AnswerForm
+from .forms import LoginForm, RegisterForm, LectureForm, TaskForm, EditTaskForm, TestCreateForm, ContestForm, SendSolutionForm, QuestionForm, AnswerForm, EditLectureForm
 from .decorators import not_logged_in_required, logged_in_required, user_not_teacher, user_not_admin
 from django.contrib.auth.decorators import login_required
 from .models import User, Contest, Lecture, Task, Test, TestGroup, ContestLecture, ContestTask, ContestSigned, Solution, SolutionTestResult, Question
@@ -20,7 +20,7 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.utils import timezone
 from django.views import View
-from django.http import JsonResponse, Http404, FileResponse
+from django.http import JsonResponse, Http404, FileResponse, HttpResponseForbidden
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Sum, Q, Prefetch, Max, F, Count
 from .tasks import execute_cpp, execute_java, execute_cs
@@ -74,7 +74,6 @@ def register_view(request):
                 role='student'
             )
             auth_login(request, user)
-            messages.success(request, "Rejestracja zakończona sukcesem.")
             return redirect('home')
         else:
             for field in form:
@@ -237,6 +236,63 @@ class add_lecture_view(View):
         messages.error(request, "Wystąpił błąd. Proszę sprawdzić poprawność formularza.")
         return render(request, 'add_lecture.html', {'form': form})
     
+    
+@method_decorator(login_required, name='dispatch')
+class edit_lecture_view(View):
+    def get(self, request, lecture_id):
+        lecture = get_object_or_404(Lecture, id=lecture_id)
+
+        # Check permissions
+        if request.user != lecture.teacher and request.user.role != 'admin':
+            return HttpResponseForbidden("You do not have permission to edit this lecture.")
+
+        form = EditLectureForm(instance=lecture)
+        return render(request, 'edit_lecture.html', {'form': form, 'lecture': lecture})
+
+    def post(self, request, lecture_id):
+        lecture = get_object_or_404(Lecture, id=lecture_id)
+
+        # Check permissions
+        if request.user != lecture.teacher and request.user.role != 'admin':
+            return HttpResponseForbidden("You do not have permission to edit this lecture.")
+
+        form = EditLectureForm(request.POST, request.FILES, instance=lecture)
+
+        if form.is_valid():
+            is_public = form.cleaned_data['is_public']
+            file = request.FILES.get('file', None)
+
+            # Handle file upload
+            if file:
+                if not file.name.endswith('.pdf'):
+                    messages.error(request, "Plik musi być w formacie .pdf.")
+                    return redirect('edit_lecture', lecture_id=lecture.id)
+
+                # Remove old file if exists
+                if lecture.content_path and default_storage.exists(os.path.join(settings.MEDIA_ROOT, lecture.content_path)):
+                    default_storage.delete(os.path.join(settings.MEDIA_ROOT, lecture.content_path))
+
+                # Save new file in the same directory
+                old_folder_path = os.path.join(settings.MEDIA_ROOT, os.path.dirname(lecture.content_path))
+                os.makedirs(old_folder_path, exist_ok=True)
+                file_path = os.path.join(old_folder_path, file.name)
+                path_on_server = os.path.relpath(file_path, settings.MEDIA_ROOT)
+
+                with default_storage.open(file_path, 'wb+') as destination:
+                    for chunk in file.chunks():
+                        destination.write(chunk)
+
+                lecture.content_path = path_on_server
+
+            lecture.is_public = is_public
+            lecture.save()
+
+            messages.success(request, "Wykład został zaktualizowany pomyślnie.")
+            return redirect('/lecture_manager')
+
+        messages.error(request, "Wystąpił błąd. Proszę sprawdzić poprawność formularza.")
+        return render(request, 'edit_lecture.html', {'form': form, 'lecture': lecture})
+
 
 def pdf_page(request, pdf_path):
     pdf_path = os.path.join(settings.MEDIA_ROOT, pdf_path)
@@ -507,7 +563,7 @@ class add_contest_view(View):
             name = form.cleaned_data['name']
             start_date = form.cleaned_data['start_date']
             end_date = form.cleaned_data['end_date']
-            send_limit = form.cleaned_data['send_limit']
+            send_limit = 10
             password = form.cleaned_data['password']
             
             if send_limit <= 0:
@@ -531,10 +587,29 @@ class add_contest_view(View):
         return render(request, 'add_contest.html', {'form': form})
     
 
+@login_required
 def edit_contest_view(request, contest_id):
     contest = get_object_or_404(Contest, id=contest_id)
 
+    # Check permissions: user must be the owner (teacher) or an admin
+    if request.user != contest.teacher and request.user.role != 'admin':
+        return redirect('home')
+
     if request.method == 'POST':
+        # Handle freezing/unfreezing ranking
+        if 'freeze_ranking' in request.POST:
+            contest.frozen_ranking = now()
+            contest.save()
+            messages.success(request, 'Ranking został zamrożony!')
+            return redirect('edit_contest', contest_id=contest.id)
+
+        elif 'unfreeze_ranking' in request.POST:
+            contest.frozen_ranking = None
+            contest.save()
+            messages.success(request, 'Ranking został odmrożony!')
+            return redirect('edit_contest', contest_id=contest.id)
+
+        # Handle contest form submission
         form = ContestForm(request.POST, instance=contest)
         if form.is_valid():
             form.save()

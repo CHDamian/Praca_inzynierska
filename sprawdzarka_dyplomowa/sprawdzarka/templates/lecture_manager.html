@@ -4,6 +4,12 @@
 <div class="container mt-4">
     <h2>Centrum Zarządzania Wykładami</h2>
 
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
     <!-- Dodaj Wykład button -->
     <div class="mb-3">
         <a href="/add_lecture" class="btn btn-primary">Dodaj Wykład</a>
@@ -39,7 +45,7 @@
                         {% endif %}
                     </td>
                     <td>
-                        <a href="#" class="btn btn-sm btn-secondary {% if lecture.teacher != request.user %}disabled{% endif %}">Edytuj</a>
+                        <a href="{% url 'edit_lecture' lecture_id=lecture.id %}" class="btn btn-sm btn-secondary {% if lecture.teacher != request.user %}disabled{% endif %}">Edytuj</a>
                     </td>
                 </tr>
             {% empty %}

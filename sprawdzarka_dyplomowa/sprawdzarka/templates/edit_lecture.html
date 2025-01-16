@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Edytuj Wykład</h2>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="id_name">Nazwa wykładu</label>
+            {{ form.name }}
+        </div>
+
+        <div class="form-group">
+            <label for="id_file">Plik (tylko PDF, opcjonalny)</label>
+            {{ form.file }}
+        </div>
+
+        <div class="form-group form-check">
+            {{ form.is_public }}
+            <label class="form-check-label" for="id_is_public">Publiczne?</label>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Zapisz</button>
+    </form>
+</div>
+{% endblock %}
