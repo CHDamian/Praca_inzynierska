@@ -97,10 +97,10 @@ python manage.py createsuperuser ### Przejdz przez kolejne kroki
 
     - Wybierz tabele Users na samym dole i znajdź tam swoje konto.
     - Pojawią się informacje zapisane w rekordzie twojekgo konta, przejdź na sam dół oraz zmień role na inną:
-    
+
         ![alt text](readme_role.png)
 
-### Konfiguracja przed przejściem na produkcje:
+## Konfiguracja przed przejściem na produkcje:
 
 1. Przejdź do pliku sprawdzarka_dyplomowa/settings.py.
 2. Wygeneruj nowy klucz by nie używać tego z developmentu:
@@ -115,4 +115,11 @@ ALLOWED_HOSTS = ['moj_host', 'localhost', '127.0.0.1']
 ```
 DEBUG = False
 ```
+
+## Szczegóły wprowadzania testów do zadań
+
+- Pliki wejściowe dla testu muszą posiadać rozszerzenie .in
+- Pliki wyjściowe dla testu muszą posiadać rozszerzenie .out
+- Takie pliki można stworzyć za pomocą dowolnego narzędzia lub IDE (Notatnik, Visual Studio Code, Vim, Nano, itp.) 
+- Ze względu na to, że kontenery Dockera działają tak, jakby były systemem linuxowym, należy zwrócić uwagę, czy jakieś dodatkowe niewidoczne dane pojawiły się w pliku (np NULL na początku, mimo, że go nie widać). Zdarza się to często przy tworzeniu testów na Windowsie.
 
